@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLF BRASIL - Sistema Profissional de Precificação e Gestão de SKUs</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --navy: #0B1C2D;
+            --blue: #1769aa;
+            --green: #16834b;
+            --red: #c93636;
+            --bg: #f4f7fa;
+            --card: #fff;
+            --text: #15202b;
+            --muted: #6b7785;
+            --line: #dfe5eb;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            color: var(--text);
+            background: #fff;
+            overflow-x: hidden;
+        }
+
+        /* ===== HEADER / NAVEGAÇÃO ===== */
+        header {
+            background: linear-gradient(135deg, var(--navy), #183b5b);
+            color: #fff;
+            padding: 16px 24px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 40px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        nav {
+            display: flex;
+            gap: 35px;
+            align-items: center;
+            flex: 1;
+        }
+
+        nav a {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: color 0.3s;
+            cursor: pointer;
+        }
+
+        nav a:hover {
+            color: #fff;
+        }
+
+        .nav-cta {
+            display: flex;
+            gap: 12px;
+            margin-left: auto;
+        }
+
+        .btn-secondary {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: transparent;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #fff;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: background 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            margin-top: 70px;
+            padding: 60px 24px;
+            background: linear-gradient(135deg, var(--navy) 0%, #1a3f63 50%, var(--blue) 100%);
+            color: #fff;
+            text-align: center;
+        }
+
+        .hero-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 900;
+            margin-bottom: 16px;
+            line-height: 1.2;
+        }
+
+        .hero .subtitle {
+            font-size: 18px;
+            opacity: 0.95;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 50px;
+        }
+
+        .btn-hero-primary {
+            background: #fff;
+            color: var(--navy);
+            border: none;
+            padding: 14px 32px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-hero-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-hero-secondary {
+            background: transparent;
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-hero-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 900;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            opacity: 0.9;
+            font-weight: 600;
+        }
+
+        /* ===== FEATURES ===== */
+        .features {
+            padding: 80px 24px;
+            background: var(--bg);
+        }
+
+        .section-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .section-header h2 {
+            font-size: 38px;
+            font-weight: 900;
+            margin-bottom: 12px;
+            color: var(--navy);
+        }
+
+        .section-header p {
+            font-size: 18px;
+            color: var(--muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .feature-card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 28px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.1);
+            border-color: var(--blue);
+        }
+
+        .feature-icon {
+            font-size: 42px;
+            margin-bottom: 16px;
+            display: inline-block;
+        }
+
+        .feature-card h3 {
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            color: var(--navy);
+        }
+
+        .feature-card p {
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        /* ===== PRICING ===== */
+        .pricing {
+            padding: 80px 24px;
+            background: #fff;
+        }
+
+        .pricing-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 50px;
+            align-items: center;
+        }
+
+        .toggle-btn {
+            background: var(--bg);
+            border: 2px solid var(--line);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--muted);
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: var(--blue);
+            color: #fff;
+            border-color: var(--blue);
+        }
+
+        .billing-period {
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-top: 40px;
+        }
+
+        .pricing-card {
+            background: var(--card);
+            border: 2px solid var(--line);
+            border-radius: 16px;
+            padding: 32px;
+            position: relative;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pricing-card.featured {
+            border-color: var(--blue);
+            box-shadow: 0 20px 60px rgba(23, 105, 170, 0.15);
+            transform: scale(1.05);
+        }
+
+        .pricing-badge {
+            position: absolute;
+            top: -12px;
+            left: 24px;
+            background: linear-gradient(135deg, var(--blue), #0d5bb8);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .pricing-name {
+            font-size: 22px;
+            font-weight: 900;
+            color: var(--navy);
+            margin-bottom: 8px;
+            margin-top: 8px;
+        }
+
+        .pricing-description {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 20px;
+        }
+
+        .pricing-price {
+            font-size: 44px;
+            font-weight: 900;
+            color: var(--navy);
+            margin-bottom: 4px;
+        }
+
+        .pricing-price-period {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 24px;
+            font-weight: 600;
+        }
+
+        .pricing-cta {
+            background: var(--blue);
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 24px;
+            transition: background 0.3s;
+            font-size: 14px;
+        }
+
+        .pricing-cta:hover {
+            background: #0d5bb8;
+        }
+
+        .pricing-cta.secondary {
+            background: var(--bg);
+            color: var(--navy);
+            border: 1px solid var(--line);
+        }
+
+        .pricing-cta.secondary:hover {
+            background: #e9f2fb;
+        }
+
+        .pricing-features {
+            flex: 1;
+            border-top: 1px solid var(--line);
+            padding-top: 24px;
+        }
+
+        .pricing-feature {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: var(--text);
+        }
+
+        .pricing-feature strong {
+            color: var(--navy);
+            min-width: 20px;
+        }
+
+        .pricing-feature.disabled {
+            color: #ccc;
+        }
+
+        .pricing-feature.disabled strong {
+            color: #999;
+        }
+
+        /* ===== COMPARISON ===== */
+        .comparison {
+            padding: 60px 24px;
+            background: var(--bg);
+            margin-bottom: 60px;
+        }
+
+        .comparison h3 {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 900;
+            margin-bottom: 30px;
+            color: var(--navy);
+        }
+
+        .comparison-table {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .comparison-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--line);
+            font-size: 13px;
+        }
+
+        .comparison-table th {
+            background: var(--bg);
+            font-weight: 800;
+            color: var(--navy);
+        }
+
+        .comparison-table td {
+            color: var(--muted);
+        }
+
+        .comparison-table tr:last-child th,
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .check {
+            color: var(--green);
+            font-weight: 900;
+            font-size: 16px;
+        }
+
+        .cross {
+            color: #999;
+        }
+
+        /* ===== FAQ ===== */
+        .faq {
+            padding: 80px 24px;
+            background: #fff;
+        }
+
+        .faq-grid {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            margin-bottom: 16px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .faq-question {
+            background: var(--bg);
+            padding: 18px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+            color: var(--navy);
+            transition: background 0.2s;
+        }
+
+        .faq-question:hover {
+            background: #eef2f6;
+        }
+
+        .faq-toggle {
+            font-size: 18px;
+            transition: transform 0.3s;
+        }
+
+        .faq-item.open .faq-toggle {
+            transform: rotate(180deg);
+        }
+
+        .faq-answer {
+            padding: 20px;
+            background: #fff;
+            color: var(--text);
+            line-height: 1.6;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s;
+            font-size: 14px;
+        }
+
+        .faq-item.open .faq-answer {
+            max-height: 500px;
+        }
+
+        /* ===== CTA ===== */
+        .cta-section {
+            padding: 60px 24px;
+            background: linear-gradient(135deg, var(--navy), #1a3f63);
+            color: #fff;
+            text-align: center;
+        }
+
+        .cta-content {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .cta-content h2 {
+            font-size: 36px;
+            font-weight: 900;
+            margin-bottom: 16px;
+        }
+
+        .cta-content p {
+            font-size: 16px;
+            opacity: 0.95;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .cta-actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* ===== FOOTER ===== */
+        footer {
+            background: var(--navy);
+            color: rgba(255, 255, 255, 0.8);
+            padding: 40px 24px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .footer-col h4 {
+            color: #fff;
+            font-weight: 800;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .footer-col ul {
+            list-style: none;
+        }
+
+        .footer-col ul li {
+            margin-bottom: 8px;
+        }
+
+        .footer-col a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 13px;
+            transition: color 0.3s;
+        }
+
+        .footer-col a:hover {
+            color: #fff;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            font-size: 12px;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 12px;
+        }
+
+        .social-links a {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 16px;
+            transition: color 0.3s;
+            text-decoration: none;
+        }
+
+        .social-links a:hover {
+            color: #fff;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 900px) {
+            .header-container {
+                gap: 20px;
+                flex-wrap: wrap;
+            }
+
+            nav {
+                gap: 20px;
+                order: 3;
+                flex-basis: 100%;
+                flex-direction: column;
+                align-items: flex-start;
+                margin-top: 10px;
+            }
+
+            .nav-cta {
+                margin-left: 0;
+                width: 100%;
+                justify-content: flex-start;
+                flex-wrap: wrap;
+            }
+
+            .hero h1 {
+                font-size: 36px;
+            }
+
+            .hero .subtitle {
+                font-size: 16px;
+            }
+
+            .pricing-card.featured {
+                transform: scale(1);
+            }
+
+            .hero-stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+            }
+
+            .footer-bottom {
+                justify-content: center;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 520px) {
+            header {
+                padding: 12px 16px;
+            }
+
+            .hero {
+                padding: 40px 16px;
+                margin-top: 60px;
+            }
+
+            .hero h1 {
+                font-size: 28px;
+            }
+
+            .hero .subtitle {
+                font-size: 14px;
+            }
+
+            .section-header h2 {
+                font-size: 24px;
+            }
+
+            .pricing-price {
+                font-size: 32px;
+            }
+
+            .features-grid,
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-stats {
+                grid-template-columns: 1fr;
+            }
+
+            nav {
+                display: none;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header>
+        <div class="header-container">
+            <div class="logo">MLF BRASIL</div>
+            <nav>
+                <a href="#recursos">Recursos</a>
+                <a href="#precos">Planos</a>
+                <a href="#faq">FAQ</a>
+            </nav>
+            <div class="nav-cta">
+                <button class="btn-secondary">Entrar</button>
+                <button class="btn-primary">Começar agora</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-container">
+            <h1>Precificação Inteligente para sua Produção</h1>
+            <p class="subtitle">
+                Sistema completo de cálculo de preços, gestão de SKUs e análise de custos. Otimize suas margens e tome decisões baseadas em dados.
+            </p>
+            <div class="hero-cta">
+                <button class="btn-hero-primary">🚀 Começar teste gratuito</button>
+                <button class="btn-hero-secondary">📖 Ver documentação</button>
+            </div>
+            <div class="hero-stats">
+                <div class="stat">
+                    <span class="stat-number">+500</span>
+                    <span class="stat-label">Empresas ativas</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">1M+</span>
+                    <span class="stat-label">SKUs gerenciados</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">98%</span>
+                    <span class="stat-label">Satisfação</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">24h</span>
+                    <span class="stat-label">Suporte</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="features" id="recursos">
+        <div class="section-container">
+            <div class="section-header">
+                <h2>Tudo que você precisa para precificar melhor</h2>
+                <p>Ferramentas profissionais para gerenciar custos, margens e rentabilidade</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🧮</div>
+                    <h3>Calculadora Inteligente</h3>
+                    <p>Calcule o preço ideal considerando material, mão de obra, máquina e margem desejada automaticamente.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Motor de Custos</h3>
+                    <p>Transforme seus custos fixos e variáveis em preços realistas por produto com rateio automático.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Gestão de SKUs</h3>
+                    <p>Organize mestres, dependentes, cores e variantes. Controle entrada, custo mínimo, ideal e máximo.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>Busca Global</h3>
+                    <p>Encontre qualquer SKU, custo ou preço em segundos com busca em tempo real por dependente, mestre ou cor.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📈</div>
+                    <h3>Relatórios Profissionais</h3>
+                    <p>Exporte análises, comparações e resumos em Excel e PDF com um único clique.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔄</div>
+                    <h3>Importação em Massa</h3>
+                    <p>Atualize centenas de SKUs, materiais e fornecedores diretamente de planilhas Excel ou CSV.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h3>Financeiro Integrado</h3>
+                    <p>Controle contas a pagar, entradas de dinheiro, fornecedores e fluxo de caixa em um só lugar.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>Segurança em Nuvem</h3>
+                    <p>Seus dados são sincronizados em tempo real, com backup automático e acesso seguro de qualquer lugar.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">👥</div>
+                    <h3>Equipes Colaborativas</h3>
+                    <p>Convide seus gerentes, mestres de produção e financeiro com permissões e papéis customizados.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRICING -->
+    <section class="pricing" id="precos">
+        <div class="section-container">
+            <div class="section-header">
+                <h2>Planos Simples e Transparentes</h2>
+                <p>Escolha o plano que melhor se adequa ao seu negócio. Sem contratos, cancele quando quiser.</p>
+            </div>
+
+            <div class="pricing-toggle">
+                <button class="toggle-btn active" onclick="setPricingMode('monthly')">Mensal</button>
+                <span class="billing-period">ou</span>
+                <button class="toggle-btn" onclick="setPricingMode('annual')">Anual (economize 20%)</button>
+            </div>
+
+            <div class="pricing-grid">
+                <!-- PLANO BÁSICO -->
+                <div class="pricing-card">
+                    <div class="pricing-name">Básico</div>
+                    <p class="pricing-description">Ideal para pequenos negócios</p>
+                    <div class="pricing-price" id="basic-price">R$ 49</div>
+                    <p class="pricing-price-period">/mês</p>
+                    <button class="pricing-cta">Começar agora</button>
+
+                    <div class="pricing-features">
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Até 3 usuários
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> 500 SKUs mestres
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> 2.000 SKUs dependentes
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Calculadora inteligente
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Gestão básica de materiais
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Relatórios em Excel
+                        </div>
+                        <div class="pricing-feature disabled">
+                            <strong>✗</strong> Motor de custos avançado
+                        </div>
+                        <div class="pricing-feature disabled">
+                            <strong>✗</strong> Financeiro integrado
+                        </div>
+                        <div class="pricing-feature disabled">
+                            <strong>✗</strong> Suporte prioritário
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PLANO PROFISSIONAL -->
+                <div class="pricing-card featured">
+                    <div class="pricing-badge">Mais popular</div>
+                    <div class="pricing-name">Profissional</div>
+                    <p class="pricing-description">Para empresas em crescimento</p>
+                    <div class="pricing-price" id="pro-price">R$ 149</div>
+                    <p class="pricing-price-period">/mês</p>
+                    <button class="pricing-cta">Começar agora</button>
+
+                    <div class="pricing-features">
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Até 10 usuários
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Até 5.000 SKUs mestres
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Até 50.000 SKUs dependentes
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Calculadora inteligente
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Motor de custos completo
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Gestão avançada de materiais
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Financeiro integrado
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Relatórios PDF profissionais
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Suporte por email 24h
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PLANO ENTERPRISE -->
+                <div class="pricing-card">
+                    <div class="pricing-name">Enterprise</div>
+                    <p class="pricing-description">Para grandes operações</p>
+                    <div class="pricing-price" id="enterprise-price">Customizado</div>
+                    <p class="pricing-price-period">Contate-nos</p>
+                    <button class="pricing-cta secondary">Solicitar demo</button>
+
+                    <div class="pricing-features">
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Usuários ilimitados
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> SKUs ilimitados
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Todos os recursos
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> API customizada
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Suporte dedicado
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Integrações personalizadas
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Treinamento incluído
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> SLA 99.9% uptime
+                        </div>
+                        <div class="pricing-feature">
+                            <strong>✓</strong> Consultoria estratégica
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COMPARISON TABLE -->
+            <div class="comparison">
+                <h3>Comparação Detalhada</h3>
+                <div class="comparison-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 30%">Funcionalidade</th>
+                                <th style="text-align: center; width: 23%">Básico</th>
+                                <th style="text-align: center; width: 23%">Profissional</th>
+                                <th style="text-align: center; width: 24%">Enterprise</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>SKUs Mestres</strong></td>
+                                <td style="text-align: center">500</td>
+                                <td style="text-align: center">5.000</td>
+                                <td style="text-align: center"><span class="check">∞</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>SKUs Dependentes</strong></td>
+                                <td style="text-align: center">2.000</td>
+                                <td style="text-align: center">50.000</td>
+                                <td style="text-align: center"><span class="check">∞</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Usuários</strong></td>
+                                <td style="text-align: center">3</td>
+                                <td style="text-align: center">10</td>
+                                <td style="text-align: center"><span class="check">∞</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Calculadora de Preços</strong></td>
+                                <td style="text-align: center"><span class="check">✓</span></td>
+                                <td style="text-align: center"><span class="check">✓</span></td>
+                                <td style="text-align: center"><span class="check">✓</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Motor de Custos</strong></td>
+                                <td style="text-align: center"><span class="cross">✗</span></td>
+                                <td style="text-align: center"><span class="check">✓</span></td>
+                                <td style="text-align: center"><span class="check">✓</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Financeiro Integrado</strong></td>
+                                <td style="text-align: center"><span class="cross">✗</span></td>
+                                <td style="text-align: center"><span class="check">✓</span></td>
+                                <td style="text-align: center"><span class="check">✓</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Relatórios PDF</strong></td>
+                                <td style="text-align: center"><span class="cross">✗</span></td>
+                                <td style="text-align: center"><span class="check">✓</span></td>
+                                <td style="text-align: center"><span class="check">✓</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Importação em Massa</strong></td>
+                                <td style="text-align: center"><span class="cross">✗</span></td>
+                                <td style="text-align: center"><span class="check">✓</span></td>
+                                <td style="text-align: center"><span class="check">✓</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>API</strong></td>
+                                <td style="text-align: center"><span class="cross">✗</span></td>
+                                <td style="text-align: center"><span class="cross">✗</span></td>
+                                <td style="text-align: center"><span class="check">✓</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Suporte Prioritário</strong></td>
+                                <td style="text-align: center"><span class="cross">✗</span></td>
+                                <td style="text-align: center"><span class="check">✓</span></td>
+                                <td style="text-align: center"><span class="check">✓</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq" id="faq">
+        <div class="section-container">
+            <div class="section-header">
+                <h2>Perguntas Frequentes</h2>
+                <p>Tudo que você precisa saber sobre o MLF BRASIL</p>
+            </div>
+
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Posso cancelar minha assinatura a qualquer momento?</span>
+                        <span class="faq-toggle">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        Sim! Você pode cancelar sua assinatura a qualquer momento, sem penalidades ou contratos. Se cancelar, terá acesso até o fim do período pago. Seus dados permanecerão salvos por 30 dias.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Existe período de teste gratuito?</span>
+                        <span class="faq-toggle">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        Sim! Oferecemos 14 dias de teste gratuito com acesso completo a todos os recursos do plano Profissional. Nenhum cartão de crédito é necessário para começar.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Como funciona a importação de dados?</span>
+                        <span class="faq-toggle">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        Você pode importar dados de arquivos Excel (.xlsx), CSV ou planilhas Google Sheets. Oferecemos modelos prontos para SKUs mestres, dependentes, materiais e fornecedores. A importação em massa economiza horas de trabalho manual.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Meus dados são seguros?</span>
+                        <span class="faq-toggle">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        Sim! Todos os dados são armazenados em servidores seguros com criptografia SSL, backup automático diário e conformidade com LGPD. Você também pode solicitar um plano Enterprise com SLA de 99.9% uptime.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Posso usar em celular/tablet?</span>
+                        <span class="faq-toggle">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        Sim! O MLF BRASIL é totalmente responsivo e funciona perfeitamente em smartphones, tablets e computadores. Você pode acessar seus dados de qualquer dispositivo, em qualquer hora.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Como adiciono mais usuários à minha conta?</span>
+                        <span class="faq-toggle">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        Você pode convidar novos usuários diretamente na seção de Configurações. Cada plano tem um limite de usuários, mas você pode adicionar mais conforme necessário. Gerentes podem ter diferentes níveis de acesso.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Qual é a diferença entre SKU Mestre e Dependente?</span>
+                        <span class="faq-toggle">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        SKU Mestre é o produto base (ex: "Painel MDF"). SKUs Dependentes são variações (ex: "Painel MDF - Preto", "Painel MDF - Branco"). O sistema permite gerenciar centenas de variações associadas a um único mestre.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Oferecem treinamento?</span>
+                        <span class="faq-toggle">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        Sim! Oferecemos webinários gratuitos, documentação completa e suporte por email. Planos Enterprise incluem treinamento personalizado na sua empresa. Agende uma demonstração conosco!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <section class="cta-section">
+        <div class="cta-content">
+            <h2>Pronto para otimizar sua precificação?</h2>
+            <p>Junte-se a centenas de empresas que já aumentaram suas margens com o MLF BRASIL. Comece agora com 14 dias de teste gratuito!</p>
+            <div class="cta-actions">
+                <button class="btn-hero-primary" style="background: #fff; color: var(--navy);">🚀 Começar teste gratuito</button>
+                <button class="btn-hero-secondary">💬 Falar com um especialista</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <h4>MLF BRASIL</h4>
+                    <ul>
+                        <li><a href="#sobre">Sobre nós</a></li>
+                        <li><a href="#blog">Blog</a></li>
+                        <li><a href="#roadmap">Roadmap</a></li>
+                        <li><a href="#status">Status do sistema</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Produto</h4>
+                    <ul>
+                        <li><a href="#recursos">Recursos</a></li>
+                        <li><a href="#precos">Preços</a></li>
+                        <li><a href="#docs">Documentação</a></li>
+                        <li><a href="#api">API</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Suporte</h4>
+                    <ul>
+                        <li><a href="mailto:suporte@mlfbrasil.com">Email: suporte@mlfbrasil.com</a></li>
+                        <li><a href="#contato">Formulário de contato</a></li>
+                        <li><a href="#faq">FAQ</a></li>
+                        <li><a href="#comunidade">Comunidade</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="#privacidade">Política de Privacidade</a></li>
+                        <li><a href="#termos">Termos de Serviço</a></li>
+                        <li><a href="#seguranca">Segurança</a></li>
+                        <li><a href="#cookies">Política de Cookies</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <div>© 2024 MLF BRASIL. Todos os direitos reservados.</div>
+                <div class="social-links">
+                    <a href="#" title="LinkedIn">in</a>
+                    <a href="#" title="Instagram">📸</a>
+                    <a href="#" title="Facebook">f</a>
+                    <a href="#" title="Twitter">𝕏</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleFaq(element) {
+            element.parentElement.classList.toggle('open');
+        }
+
+        function setPricingMode(mode) {
+            const buttons = document.querySelectorAll('.toggle-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            const prices = {
+                monthly: {
+                    basic: 'R$ 49',
+                    pro: 'R$ 149',
+                    enterprise: 'Customizado'
+                },
+                annual: {
+                    basic: 'R$ 470',
+                    pro: 'R$ 1.430',
+                    enterprise: 'Customizado'
+                }
+            };
+
+            document.getElementById('basic-price').textContent = prices[mode].basic;
+            document.getElementById('pro-price').textContent = prices[mode].pro;
+            document.getElementById('enterprise-price').textContent = prices[mode].enterprise;
+        }
+
+        // Smooth scroll para links internos
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
