@@ -2592,7 +2592,7 @@ function exportMastersExcel(){
   const MAX_MDF=10;
   const standardKeys = new Set([
     "id","skuMestre","categoria","qtdSkus","entrada","precoVendaPlanilha","precoVenda","tempoProducaoMin","tempoMaquinaMin","tempoMontagemMin","modoTempoSeparado",
-    "embalagemId","embalagemDescricao","embalagemTipo","embalagemTamanho","embalagemValor","tempoMedioEmbalagem","observacao","mdfMateriais",
+    "embalagemId","embalagemDescricao","embalagemTipo","embalagemTamanho","embalagemValor","tempoMedioEmbalagem","observacao","imageLinks","mdfMateriais",
     "mdfId","mdfDescricao","mdfEspessura","mdfLarguraCm","mdfComprimentoCm","mdfQuantidade",
     "custoMdf","custoEmbalagem","custoMateriais","custoMaquina","custoMaoObra","custoRateioFixo","custoDireto",
     "custoTotal","custoTaxasVenda","precoEquilibrio","precoSugerido","margemContribuicao","lucroOperacional","margemOperacional",
@@ -2627,6 +2627,7 @@ function exportMastersExcel(){
       "VALOR EMBALAGEM":Number(cost.custoEmbalagem)||0,
       "TEMPO MÉDIO EMBALAGEM (MIN)":Number(getEmbalagemForMaster(m)?.tempoMedioEmbalagem||0)||0,
       "OBSERVAÇÃO":m.observacao||"",
+      "LINKS DAS IMAGENS":Array.isArray(m.imageLinks)?m.imageLinks.join("\n"):String(m.imageLinks||""),
       "QTD. DEPENDENTES":deps.length,
       "SKUS DEPENDENTES":depNames,
       "CUSTO MDF":Number(cost.custoMdf)||0,
@@ -2682,7 +2683,7 @@ function exportMastersExcel(){
   // Destaca campos editáveis e mantém os calculados para conferência.
   const editableHeaders=[
     "SKU MESTRE","CATEGORIA","QTD. SKUS","ENTRADA COM LUCRO","PREÇO DE VENDA","TEMPO DE PRODUÇÃO (MIN)",
-    "EMBALAGEM ID","OBSERVAÇÃO"
+    "EMBALAGEM ID","OBSERVAÇÃO","LINKS DAS IMAGENS"
   ];
   for(let i=1;i<=MAX_MDF;i++) editableHeaders.push(`MATERIAL ${i}`,`MATERIAL ${i} ID`,`LARGURA MATERIAL ${i} (cm)`,`COMPRIMENTO MATERIAL ${i} (cm)`,`GRAMAS MATERIAL ${i}`,`QTD. MATERIAL ${i}`);
 
@@ -2881,7 +2882,8 @@ async function importMastersExcel(file){
           embalagemTipo:embalagem?.tipoEmbalagem||"",
           embalagemTamanho:embalagem?.tamanhoEmbalagem||"",
           embalagemValor:Number(embalagem?.valor)||0,
-          observacao:String(r["OBSERVAÇÃO"]??"") ,
+          observacao:String(r["OBSERVAÇÃO"]??""),
+          ...(Object.prototype.hasOwnProperty.call(r,"LINKS DAS IMAGENS")?{imageLinks:String(r["LINKS DAS IMAGENS"]??"").split(/\r?\n|\s*\|\s*/).map(x=>x.trim()).filter(Boolean)}:{}),
           mdfMateriais:materiais,
           mdfId:materiais[0]?.mdfId||"",
           mdfDescricao:materiais.map(x=>x.mdfDescricao).filter(Boolean).join(" + "),
@@ -3040,6 +3042,7 @@ window.viewMaster=function(id){
         <label>Embalagem<input value="${esc(embalagem?.descricao||m.embalagemDescricao||"—")}" readonly></label>
         <label>Custo da embalagem (calculado)<input value="${brl(getComputedMasterCosts(m).custoEmbalagem)}" readonly></label>
         <label>Custo MDF / materiais (calculado)<input value="${brl(getComputedMasterCosts(m).custoMdf)}" readonly></label>
+        <label class="full">Links das imagens<input value="${esc(Array.isArray(m.imageLinks)?m.imageLinks.join(" | "):String(m.imageLinks||""))}" readonly></label>
         <label>Observação<input value="${esc(m.observacao||"")}" readonly></label>
       </div>
       <div class="panel" style="margin:0;padding:14px">
@@ -3606,6 +3609,7 @@ window.editMaster=async id=>{
       <div class="notice" style="margin-top:10px">MDF é calculado pela proporção de área usada na chapa. Filamento 3D é calculado pelo consumo em gramas. Todos os materiais vinculados são somados ao custo do SKU Mestre.</div>
     </div>
 
+    <label class="full">Links das imagens do produto<textarea name="imageLinks" rows="4" placeholder="Cole os links das imagens, um por linha">${esc(Array.isArray(m.imageLinks)?m.imageLinks.join("\n"):String(m.imageLinks||""))}</textarea><small style="color:var(--muted);display:block;margin-top:4px">Informe um link por linha. Os links ficarão salvos no SKU Mestre.</small></label>
     <label class="full">Observação<textarea name="observacao">${esc(m.observacao||"")}</textarea></label>
     <div class="full"><button class="btn green">Salvar no Firebase</button></div>
   </form>`);
@@ -3681,7 +3685,9 @@ window.editMaster=async id=>{
       embalagemValor:Number(embalagem?.valor)||0,
       custoMdf:Number(custoMdf)||0,
       custoEmbalagem:Number(embalagem?.valor)||0,
-      observacao:f.get("observacao")||"", mdfMateriais,
+      observacao:f.get("observacao")||"",
+      imageLinks:String(f.get("imageLinks")||"").split(/\r?\n/).map(x=>x.trim()).filter(Boolean),
+      mdfMateriais,
       // Mantém os campos antigos para compatibilidade com versões anteriores do sistema.
       mdfId:first.mdfId||"", mdfDescricao:first.mdfDescricao||"", mdfEspessura:first.mdfEspessura||"",
       mdfLarguraCm:Number(first.larguraCm)||0, mdfComprimentoCm:Number(first.comprimentoCm)||0,
@@ -3808,7 +3814,7 @@ function downloadMastersBulkTemplate(){
   const headers=[
     "SKU MESTRE","CATEGORIA","ENTRADA COM LUCRO","PREÇO DE VENDA",
     "TEMPO DE MÁQUINA (MIN)","TEMPO DE MONTAGEM / MÃO DE OBRA (MIN)","TEMPO DE PRODUÇÃO (MIN)",
-    "EMBALAGEM ID","OBSERVAÇÃO","QTD. SKUS","TEMPOS SEPARADOS"
+    "EMBALAGEM ID","OBSERVAÇÃO","LINKS DAS IMAGENS","QTD. SKUS","TEMPOS SEPARADOS"
   ];
   for(let i=1;i<=10;i++) headers.push(`MATERIAL ${i}`,`MATERIAL ${i} ID`,`ESPESSURA MATERIAL ${i}`,`TIPO MATERIAL ${i}`,`LARGURA MATERIAL ${i} (cm)`,`COMPRIMENTO MATERIAL ${i} (cm)`,`GRAMAS MATERIAL ${i}`,`QTD. MATERIAL ${i}`);
   const ws=XLSX.utils.aoa_to_sheet([headers]);
@@ -3818,6 +3824,7 @@ function downloadMastersBulkTemplate(){
   const instr=[
     ["REGRAS DO CADASTRO EM MASSA — SKU MESTRES"],
     ["OBRIGATÓRIOS: SKU MESTRE | CATEGORIA | ENTRADA COM LUCRO"],
+    ["LINKS DAS IMAGENS: opcional; informe um link por linha ou separe vários links por |."],
     ["PREÇO DE VENDA é calculado automaticamente pela ENTRADA COM LUCRO. A coluna pode permanecer em branco e, se preenchida, o valor informado será ignorado."],
     ["REGRA DE PREÇO: até R$ 79,99 = (Entrada + R$ 4,50) / 80%; R$ 80–99,99 = (Entrada + R$ 16,00) / 86%; R$ 100–199,99 = (Entrada + R$ 20,00) / 86%; R$ 200+ = (Entrada + R$ 26,00) / 86%."],
     ["CATEGORIA aceita: MDF | PLASTICO | 3D"],
@@ -3903,7 +3910,7 @@ async function importMastersBulkCreate(file){
         skuMestre:sku,categoria,entrada:entrada??0,precoVendaPlanilha:calculateMasterSalePrice(entrada??0),qtdSkus:Math.max(0,parseBulkMasterNumber(r["QTD. SKUS"])||0),
         modoTempoSeparado:true,tempoMaquinaMin:tempoMaquina,tempoMontagemMin:tempoMontagem,tempoProducaoMin:tempoProducao,
         embalagemId:embalagem?.id||"",embalagemDescricao:embalagem?.descricao||"",embalagemTipo:embalagem?.tipoEmbalagem||"",embalagemTamanho:embalagem?.tamanhoEmbalagem||"",embalagemValor:Number(embalagem?.valor)||0,
-        observacao:String(r["OBSERVAÇÃO"]??""),mdfMateriais:materiais,mdfId:materiais[0]?.mdfId||"",mdfDescricao:materiais.map(x=>x.mdfDescricao).filter(Boolean).join(" + "),mdfEspessura:materiais[0]?.mdfEspessura||"",mdfLarguraCm:Number(materiais[0]?.larguraCm)||0,mdfComprimentoCm:Number(materiais[0]?.comprimentoCm)||0,mdfQuantidade:Number(materiais[0]?.quantidade)||1,
+        observacao:String(r["OBSERVAÇÃO"]??""),imageLinks:String(r["LINKS DAS IMAGENS"]??"").split(/\r?\n|\s*\|\s*/).map(x=>x.trim()).filter(Boolean),mdfMateriais:materiais,mdfId:materiais[0]?.mdfId||"",mdfDescricao:materiais.map(x=>x.mdfDescricao).filter(Boolean).join(" + "),mdfEspessura:materiais[0]?.mdfEspessura||"",mdfLarguraCm:Number(materiais[0]?.larguraCm)||0,mdfComprimentoCm:Number(materiais[0]?.comprimentoCm)||0,mdfQuantidade:Number(materiais[0]?.quantidade)||1,
         criadoPorUid:String(currentUser?.uid||activeWorkspaceUid||"").trim(),criadoPorEmail:String(currentUser?.email||"").toLowerCase(),atualizadoEm:new Date().toISOString()
       });
     });
@@ -4107,6 +4114,7 @@ function openNewMasterModal(prefill={}){
     <label>Preço de venda (automático)<input id="newMasterAutoPrice" name="precoVendaPlanilha" type="number" step="0.01" value="${calculateMasterSalePrice(p.entrada)}" readonly><small style="color:var(--muted)">Calculado automaticamente conforme a Entrada.</small></label>
     <label>📦 Embalagem<select name="embalagemId">${embalagemOptions(p.embalagemId||"")}</select><small style="color:var(--muted)">${p.embalagemId?`Embalagem identificada automaticamente a partir dos Materiais da Calculadora.`:`Cadastre as embalagens na aba Material.`}</small></label>
     <div class="full"><div class="notice" style="margin:0">Depois de criar o mestre, clique em <b>Editar</b> para cadastrar MDFs e revisar a embalagem selecionada.</div></div>
+    <label class="full">Links das imagens do produto<textarea name="imageLinks" rows="4" placeholder="Cole os links das imagens, um por linha">${esc(Array.isArray(p.imageLinks)?p.imageLinks.join("\n"):String(p.imageLinks||""))}</textarea><small style="color:var(--muted);display:block;margin-top:4px">Informe um link por linha. Você poderá editar esses links depois.</small></label>
     <label class="full">Observação<textarea name="observacao">${esc(p.observacao)}</textarea></label><div class="full"><button class="btn green">Criar</button></div>
   </form>`);
   const newMasterEntry=document.querySelector('#newMasterForm [name="entrada"]');
@@ -4116,7 +4124,7 @@ function openNewMasterModal(prefill={}){
   refreshNewMasterAutoPrice();
 
   document.getElementById("newMasterForm").onsubmit=async e=>{
-    e.preventDefault();const f=new FormData(e.target), embalagem=getEmbalagemForMaster({embalagemId:String(f.get("embalagemId")||"").trim()}), entrada=num(f.get("entrada")), m={skuMestre:f.get("skuMestre").trim(),qtdSkus:num(f.get("qtdSkus")),entrada,modoTempoSeparado:f.get("modoTempoSeparado")==="on",tempoMaquinaMin:Math.max(0,Number(f.get("tempoMaquinaMin"))||0),tempoMontagemMin:Math.max(0,Number(f.get("tempoMontagemMin"))||0),tempoProducaoMin:(Math.max(0,Number(f.get("tempoMaquinaMin"))||0)+Math.max(0,Number(f.get("tempoMontagemMin"))||0)),categoria:String(f.get("categoria")||"MDF").toUpperCase(),precoVendaPlanilha:calculateMasterSalePrice(entrada),embalagemId:embalagem?.id||"",embalagemDescricao:embalagem?.descricao||"",embalagemTipo:embalagem?.tipoEmbalagem||"",embalagemTamanho:embalagem?.tamanhoEmbalagem||"",embalagemValor:Number(embalagem?.valor)||0,mdfMateriais:Array.isArray(p.mdfMateriais)?p.mdfMateriais:[],observacao:f.get("observacao")||""};
+    e.preventDefault();const f=new FormData(e.target), embalagem=getEmbalagemForMaster({embalagemId:String(f.get("embalagemId")||"").trim()}), entrada=num(f.get("entrada")), m={skuMestre:f.get("skuMestre").trim(),qtdSkus:num(f.get("qtdSkus")),entrada,modoTempoSeparado:f.get("modoTempoSeparado")==="on",tempoMaquinaMin:Math.max(0,Number(f.get("tempoMaquinaMin"))||0),tempoMontagemMin:Math.max(0,Number(f.get("tempoMontagemMin"))||0),tempoProducaoMin:(Math.max(0,Number(f.get("tempoMaquinaMin"))||0)+Math.max(0,Number(f.get("tempoMontagemMin"))||0)),categoria:String(f.get("categoria")||"MDF").toUpperCase(),precoVendaPlanilha:calculateMasterSalePrice(entrada),imageLinks:String(f.get("imageLinks")||"").split(/\r?\n/).map(x=>x.trim()).filter(Boolean),embalagemId:embalagem?.id||"",embalagemDescricao:embalagem?.descricao||"",embalagemTipo:embalagem?.tipoEmbalagem||"",embalagemTamanho:embalagem?.tamanhoEmbalagem||"",embalagemValor:Number(embalagem?.valor)||0,mdfMateriais:Array.isArray(p.mdfMateriais)?p.mdfMateriais:[],observacao:f.get("observacao")||""};
     const id=docId(m.skuMestre);
     try{if(!firebaseOnline||!mastersRef)throw new Error("Firebase não conectado");await setDoc(doc(mastersRef,id),m);masters.push({id,...m});masters.sort((a,b)=>a.skuMestre.localeCompare(b.skuMestre));
 renderAll();closeModal();toast("Novo mestre criado.");}catch(err){toast("Erro ao criar mestre.");}
