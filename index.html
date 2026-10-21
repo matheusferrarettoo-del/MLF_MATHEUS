@@ -570,6 +570,7 @@ table{border-collapse:collapse;width:100%;min-width:850px}th,td{padding:10px 11p
     <select id="colorFilter"><option value="">Todas as cores</option></select>
     <select id="masterFilter"><option value="">Todos os mestres</option></select>
     <button class="btn green" id="newSku">+ Novo SKU dependente</button>
+    <button class="btn" id="exportSkuDependents">⬇ Exportar SKU e Dependentes</button>
     <button class="btn" id="downloadBulkSkusTemplate">⬇ Modelo cadastro em massa</button>
     <label class="btn" for="importBulkSkus" style="cursor:pointer">⬆ Cadastrar em massa</label>
     <input id="importBulkSkus" type="file" accept=".xlsx,.xls,.csv" style="display:none">
@@ -5811,6 +5812,74 @@ document.querySelectorAll(".nav-parent").forEach(parent=>parent.addEventListener
 document.addEventListener("click",()=>{document.querySelectorAll(".nav-menu").forEach(m=>m.classList.remove("open"));document.querySelectorAll(".nav-parent").forEach(x=>x.classList.remove("open"));});
 document.getElementById("masterSearch").oninput=renderMasters;
 document.getElementById("masterSort")?.addEventListener("change",renderMasters);
+
+/* Exporta SKU Mestre, SKUs Dependentes e todos os identificadores de anúncio vinculados. */
+function exportSkuDependents(){
+  if(typeof XLSX==="undefined"){toast("Biblioteca Excel indisponível. Recarregue a página.");return;}
+  const q=(document.getElementById("skuSearch")?.value||"").trim().toLowerCase();
+  const color=document.getElementById("colorFilter")?.value||"";
+  const masterFilter=document.getElementById("masterFilter")?.value||"";
+  const filtered=(skus||[]).filter(s=>{
+    const names=normalizeSkuMestres(s);
+    const search=[s.sku,...names,s.cor].join(" ").toLowerCase();
+    return (!q||search.includes(q))&&(!color||s.cor===color)&&(!masterFilter||names.includes(masterFilter));
+  });
+  if(!filtered.length){toast("Nenhum SKU dependente encontrado para exportar.");return;}
+
+  const rows=[];
+  filtered.forEach(s=>{
+    const names=normalizeSkuMestres(s);
+    const mastersForRow=names.length?names:[""];
+    const ids=typeof normalizeAnuncioVariantIds==="function"?normalizeAnuncioVariantIds(s):[];
+    const linkedIds=ids.length?ids:[""];
+    // Uma linha por combinação mestre/dependente/ID, preservando todos os vínculos.
+    mastersForRow.forEach(masterName=>{
+      linkedIds.forEach(adId=>{
+        const master=(masters||[]).find(m=>String(m.skuMestre||"").trim().toUpperCase()===String(masterName||"").trim().toUpperCase());
+        rows.push({
+          "SKU MESTRE":masterName,
+          "ID DO SKU MESTRE":master?.id||"",
+          "SKU DEPENDENTE":s.sku||"",
+          "ID DO SKU DEPENDENTE":s.id||"",
+          "SKU MESTRES VINCULADOS":names.join(" + "),
+          "UNIDADES":Number(s.unidades)||1,
+          "COR":s.cor||"CRU",
+          "ID DO ANÚNCIO / VARIANTE IDENTIFICADOR":adId,
+          "STATUS DO VÍNCULO DO ANÚNCIO":adId?(s.conferenciaAnuncioStatus||"VINCULADO"):"SEM IDENTIFICADOR",
+          "ARQUIVO DA CONFERÊNCIA":s.conferenciaAnuncioArquivo||"",
+          "DATA DA CONFERÊNCIA":s.conferenciaAnuncioEm||""
+        });
+      });
+    });
+  });
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.json_to_sheet(rows);
+  ws["!cols"]=[
+    {wch:32},{wch:26},{wch:32},{wch:28},{wch:42},{wch:12},
+    {wch:16},{wch:34},{wch:30},{wch:36},{wch:24}
+  ];
+  ws["!autofilter"]={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows.length,c:10}})};
+  XLSX.utils.book_append_sheet(wb,ws,"SKU E DEPENDENTES");
+
+  // Aba de resumo: uma linha por SKU dependente, com todos os IDs reunidos.
+  const summaryRows=filtered.map(s=>({
+    "SKU MESTRE":normalizeSkuMestres(s).join(" + "),
+    "SKU DEPENDENTE":s.sku||"",
+    "UNIDADES":Number(s.unidades)||1,
+    "COR":s.cor||"CRU",
+    "IDS DE ANÚNCIOS / VARIANTE IDENTIFICADOR":(typeof normalizeAnuncioVariantIds==="function"?normalizeAnuncioVariantIds(s):[]).join(" | "),
+    "QUANTIDADE DE IDS":(typeof normalizeAnuncioVariantIds==="function"?normalizeAnuncioVariantIds(s):[]).length,
+    "STATUS DA CONFERÊNCIA":s.conferenciaAnuncioStatus||"NÃO CONFERIDO"
+  }));
+  const summaryWs=XLSX.utils.json_to_sheet(summaryRows);
+  summaryWs["!cols"]=[{wch:42},{wch:32},{wch:12},{wch:16},{wch:60},{wch:18},{wch:24}];
+  XLSX.utils.book_append_sheet(wb,summaryWs,"RESUMO POR SKU");
+  const date=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,`MLF_SKU_Mestres_Dependentes_Anuncios_${date}.xlsx`);
+  toast(`Exportação concluída: ${filtered.length} SKU(s) dependente(s), ${rows.length} vínculo(s) mestre/dependente/ID.`);
+}
+document.getElementById("exportSkuDependents")?.addEventListener("click",exportSkuDependents);
+
 document.getElementById("skuSearch").oninput=renderSkus;
 document.getElementById("colorFilter").onchange=renderSkus;
 document.getElementById("masterFilter").onchange=renderSkus;
