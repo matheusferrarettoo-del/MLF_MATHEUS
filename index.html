@@ -447,6 +447,18 @@ table{border-collapse:collapse;width:100%;min-width:850px}th,td{padding:10px 11p
 .av-id-list{display:flex;flex-wrap:wrap;gap:5px;max-width:360px;white-space:normal}.av-id-pill{display:inline-flex;align-items:center;padding:4px 7px;border-radius:999px;background:#eef5ff;border:1px solid #cfe0f7;color:#24557f;font-size:10px;font-weight:800}.av-status{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:900}.av-status.ok{background:#e8f7ef;color:#16734a}.av-status.missing{background:#fff0f0;color:#b42318}.av-results-wrap{border:1px solid var(--line);border-radius:12px;overflow:auto;background:#fff}.av-results-table{min-width:760px}.av-results-table td{white-space:normal;vertical-align:top}.av-results-table .av-sku{font-weight:900;color:var(--navy)}
 @media(max-width:1000px){#anuncioVariantSummary{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media(max-width:600px){#anuncioVariantSummary{grid-template-columns:1fr!important}}
+
+/* Ajuste percentual em massa de entradas dos SKU Mestres */
+.bulk-entry-adjust{display:none;margin:0 0 16px;padding:16px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.bulk-entry-adjust.open{display:block}
+.bulk-entry-adjust-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end}
+.bulk-entry-adjust label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:var(--muted)}
+.bulk-entry-adjust input,.bulk-entry-adjust select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--text)}
+.bulk-entry-preview{margin-top:12px;max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.bulk-entry-preview table{min-width:650px}
+.bulk-entry-preview th,.bulk-entry-preview td{padding:8px 10px}
+@media(max-width:800px){.bulk-entry-adjust-grid{grid-template-columns:1fr}}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -552,6 +564,9 @@ table{border-collapse:collapse;width:100%;min-width:850px}th,td{padding:10px 11p
       <option value="3D">3D</option>
     </select>
     <button class="btn green" id="applyBulkCategory">Aplicar categoria</button>
+
+    <button class="btn" id="openBulkEntryAdjust">↕ Ajustar entrada em massa (%)</button>
+
     <button class="btn" id="exportMastersExcel">⬇ Baixar planilha</button>
     <label class="btn" for="importMastersExcel" style="cursor:pointer">⬆ Atualizar em massa</label>
     <input id="importMastersExcel" type="file" accept=".xlsx,.xls,.csv" style="display:none">
@@ -560,6 +575,34 @@ table{border-collapse:collapse;width:100%;min-width:850px}th,td{padding:10px 11p
     <input id="importMastersBulkCreate" type="file" accept=".xlsx,.xls,.csv" style="display:none">
     <button class="btn" id="exportMastersPdf">⬇ Exportar PDF</button>
   </div>
+
+  <div class="panel bulk-entry-adjust" id="bulkEntryAdjustPanel">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div>
+        <h2 style="margin:0 0 5px">Ajuste em massa da entrada dos SKU Mestres</h2>
+        <p class="sub" style="margin:0">Selecione os mestres na tabela ou use “Selecionar todos”. O sistema aplica o percentual à entrada atual, recalcula o preço de venda de cada mestre e atualiza os preços dos dependentes vinculados.</p>
+      </div>
+      <button type="button" class="btn secondary" id="closeBulkEntryAdjust">Fechar</button>
+    </div>
+    <div class="bulk-entry-adjust-grid" style="margin-top:14px">
+      <label>Operação
+        <select id="bulkEntryDirection">
+          <option value="increase">Aumentar entrada (%)</option>
+          <option value="decrease">Diminuir entrada (%)</option>
+        </select>
+      </label>
+      <label>Percentual
+        <input id="bulkEntryPercent" type="number" min="0.01" max="99.99" step="0.01" placeholder="Ex.: 10" inputmode="decimal">
+      </label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn" id="previewBulkEntryAdjust">Pré-visualizar</button>
+        <button type="button" class="btn green" id="applyBulkEntryAdjust">Aplicar ajuste</button>
+      </div>
+    </div>
+    <div id="bulkEntryAdjustStatus" class="notice" style="margin-top:12px">Nenhum ajuste preparado. Selecione os SKU Mestres e informe o percentual.</div>
+    <div id="bulkEntryAdjustPreview" class="bulk-entry-preview" style="display:none"></div>
+  </div>
+
   <div class="tablewrap"><table><thead><tr><th><input type="checkbox" id="masterSelectHeader" title="Selecionar todos os visíveis"></th><th>SKU MESTRE</th><th>CATEGORIA</th><th>ENTRADA</th><th>PREÇO VENDA</th><th>TEMPO PRODUÇÃO</th><th>MDF USADO</th><th>AÇÕES</th></tr></thead><tbody id="mastersBody"></tbody></table></div>
 </section>
 
@@ -2471,6 +2514,125 @@ async function loadData(){
 }
 
 
+
+const bulkEntrySelectedMasterNames = new Set();
+function bulkEntryRememberSelection(){
+  document.querySelectorAll("#mastersBody .master-select").forEach(box=>{
+    const name=String(box.getAttribute("data-sku")||"");
+    if(!name)return;
+    if(box.checked)bulkEntrySelectedMasterNames.add(name);
+    else bulkEntrySelectedMasterNames.delete(name);
+  });
+}
+function bulkEntryRestoreSelection(){
+  document.querySelectorAll("#mastersBody .master-select").forEach(box=>{
+    box.checked=bulkEntrySelectedMasterNames.has(String(box.getAttribute("data-sku")||""));
+  });
+  const boxes=Array.from(document.querySelectorAll("#mastersBody .master-select"));
+  const header=document.getElementById("masterSelectHeader");
+  if(header)header.checked=boxes.length>0&&boxes.every(x=>x.checked);
+  const allBtn=document.getElementById("selectAllMasters");
+  if(allBtn)allBtn.textContent=boxes.length>0&&boxes.every(x=>x.checked)?"☐ Desmarcar todos":"☑ Selecionar todos";
+}
+function bulkEntryGetSelectedMasters(){
+  bulkEntryRememberSelection();
+  return masters.filter(m=>bulkEntrySelectedMasterNames.has(String(m.skuMestre||"")));
+}
+function bulkEntrySetStatus(message,isError=false){
+  const el=document.getElementById("bulkEntryAdjustStatus");
+  if(el){el.textContent=message;el.style.borderColor=isError?"#c93636":"var(--line)";el.style.color=isError?"#b42323":"var(--text)";}
+}
+function bulkEntryPreview(){
+  const selected=bulkEntryGetSelectedMasters();
+  const percent=Number(String(document.getElementById("bulkEntryPercent")?.value||"").replace(",","."));
+  const direction=document.getElementById("bulkEntryDirection")?.value||"increase";
+  if(!selected.length){bulkEntrySetStatus("Selecione pelo menos um SKU Mestre na tabela ou clique em Selecionar todos.",true);return null;}
+  if(!Number.isFinite(percent)||percent<=0||percent>=100){
+    bulkEntrySetStatus("Informe um percentual maior que 0 e menor que 100. A redução não pode zerar nem deixar a entrada negativa.",true);return null;
+  }
+  const factor=direction==="decrease"?(1-percent/100):(1+percent/100);
+  const rows=selected.map(m=>{
+    const oldEntry=Number(m.entrada)||0;
+    const newEntry=Math.round((oldEntry*factor+Number.EPSILON)*100)/100;
+    return {m,oldEntry,newEntry,oldSale:Number(m.precoVendaPlanilha??m.precoVenda)||calculateMasterSalePrice(oldEntry),newSale:calculateMasterSalePrice(newEntry)};
+  });
+  const preview=document.getElementById("bulkEntryAdjustPreview");
+  if(preview){
+    preview.innerHTML=`<table><thead><tr><th>SKU MESTRE</th><th>ENTRADA ATUAL</th><th>NOVA ENTRADA</th><th>PREÇO ATUAL</th><th>NOVO PREÇO</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.m.skuMestre)}</td><td>${brl(r.oldEntry)}</td><td><b>${brl(r.newEntry)}</b></td><td>${brl(r.oldSale)}</td><td><b>${brl(r.newSale)}</b></td></tr>`).join("")}</tbody></table>`;
+    preview.style.display="block";
+  }
+  const directionText=direction==="decrease"?"reduzidas":"aumentadas";
+  bulkEntrySetStatus(`Prévia: ${rows.length} SKU(s) Mestre selecionado(s); entradas serão ${directionText} em ${percent.toLocaleString("pt-BR")}% e os preços serão recalculados. Nada foi salvo ainda.`);
+  return {rows,percent,direction};
+}
+async function applyBulkEntryAdjust(){
+  const plan=bulkEntryPreview();
+  if(!plan)return;
+  const depCount=skus.filter(s=>normalizeSkuMestres(s).some(name=>plan.rows.some(r=>String(r.m.skuMestre||"").trim()===String(name).trim()))).length;
+  const action=plan.direction==="decrease"?"diminuir":"aumentar";
+  const ok=window.confirm(`Confirma ${action} a entrada de ${plan.rows.length} SKU(s) Mestre em ${plan.percent.toLocaleString("pt-BR")}%?\n\nO preço de venda dos mestres será recalculado e ${depCount} SKU(s) dependente(s) relacionado(s) serão recalculados. Esta ação altera os dados no Firebase.`);
+  if(!ok)return;
+  const btn=document.getElementById("applyBulkEntryAdjust");
+  if(btn){btn.disabled=true;btn.textContent="Salvando…";}
+  try{
+    if(!firebaseOnline||!mastersRef||!skusRef)throw new Error("Firebase não conectado. Nenhuma alteração foi gravada.");
+    const changedNames=new Set(plan.rows.map(r=>String(r.m.skuMestre||"").trim()));
+    const updatedMasters=plan.rows.map(({m,newEntry})=>({
+      m,
+      payload:{
+        entrada:newEntry,
+        precoVendaPlanilha:calculateMasterSalePrice(newEntry),
+        precoVenda:calculateMasterSalePrice(newEntry),
+        atualizadoEm:new Date().toISOString()
+      }
+    }));
+    // Batch separados, limitados a 450 gravações por lote.
+    for(let i=0;i<updatedMasters.length;i+=450){
+      const batch=writeBatch(db);
+      updatedMasters.slice(i,i+450).forEach(({m,payload})=>batch.set(doc(mastersRef,m.id),payload,{merge:true}));
+      await batch.commit();
+    }
+    updatedMasters.forEach(({m,payload})=>Object.assign(m,payload));
+
+    const affectedDeps=skus.filter(s=>normalizeSkuMestres(s).some(name=>changedNames.has(String(name).trim())));
+    const depUpdates=affectedDeps.map(s=>({s,payload:buildDependentComputedPayload(s)})).filter(x=>x.payload);
+    for(let i=0;i<depUpdates.length;i+=450){
+      const batch=writeBatch(db);
+      depUpdates.slice(i,i+450).forEach(({s,payload})=>batch.set(doc(skusRef,s.id),payload,{merge:true}));
+      await batch.commit();
+    }
+    depUpdates.forEach(({s,payload})=>Object.assign(s,payload));
+
+    const preview=document.getElementById("bulkEntryAdjustPreview");
+    if(preview)preview.style.display="none";
+    bulkEntrySetStatus(`Concluído: ${updatedMasters.length} entrada(s) atualizada(s) e ${depUpdates.length} SKU(s) dependente(s) recalculado(s) e salvo(s).`);
+    toast(`Ajuste concluído: ${updatedMasters.length} mestre(s), ${depUpdates.length} dependente(s) recalculado(s).`);
+    bulkEntrySelectedMasterNames.clear();
+    renderAll();
+  }catch(err){
+    console.error("Ajuste em massa das entradas:",err);
+    bulkEntrySetStatus(err?.message||"Falha ao salvar o ajuste em massa. Verifique a conexão e os dados no Firebase.",true);
+    toast("Não foi possível concluir o ajuste em massa. Verifique o Firebase.");
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent="Aplicar ajuste";}
+  }
+}
+function initBulkEntryAdjust(){
+  document.getElementById("openBulkEntryAdjust")?.addEventListener("click",()=>{
+    const panel=document.getElementById("bulkEntryAdjustPanel");
+    bulkEntryRememberSelection();
+    panel?.classList.toggle("open");
+    if(panel?.classList.contains("open"))panel.scrollIntoView({behavior:"smooth",block:"nearest"});
+  });
+  document.getElementById("closeBulkEntryAdjust")?.addEventListener("click",()=>document.getElementById("bulkEntryAdjustPanel")?.classList.remove("open"));
+  document.getElementById("previewBulkEntryAdjust")?.addEventListener("click",bulkEntryPreview);
+  document.getElementById("applyBulkEntryAdjust")?.addEventListener("click",applyBulkEntryAdjust);
+  document.getElementById("bulkEntryPercent")?.addEventListener("input",()=>{const preview=document.getElementById("bulkEntryAdjustPreview");if(preview)preview.style.display="none";});
+  document.getElementById("bulkEntryDirection")?.addEventListener("change",()=>{const preview=document.getElementById("bulkEntryAdjustPreview");if(preview)preview.style.display="none";});
+}
+initBulkEntryAdjust();
+
+
 function selectedMasterSkus(){
   return Array.from(document.querySelectorAll("#mastersBody .master-select:checked"))
     .map(el=>el.getAttribute("data-sku"))
@@ -2528,17 +2690,20 @@ function wireMasterBulkActions(){
   if(btn) btn.onclick=applyBulkMasterCategory;
 
   if(allBtn) allBtn.onclick=()=>{
+    bulkEntryRememberSelection();
     const boxes=Array.from(document.querySelectorAll("#mastersBody .master-select"));
     if(!boxes.length){ toast("Nenhum SKU Mestre encontrado."); return; }
     const allSelected=boxes.every(x=>x.checked);
     boxes.forEach(x=>x.checked=!allSelected);
     if(header) header.checked=!allSelected;
+    boxes.forEach(x=>{const name=String(x.getAttribute("data-sku")||"");if(x.checked)bulkEntrySelectedMasterNames.add(name);else bulkEntrySelectedMasterNames.delete(name);});
     allBtn.textContent=allSelected ? "☑ Selecionar todos" : "☐ Desmarcar todos";
   };
 
   if(header) header.onchange=()=>{
     const boxes=Array.from(document.querySelectorAll("#mastersBody .master-select"));
     boxes.forEach(x=>x.checked=header.checked);
+    boxes.forEach(x=>{const name=String(x.getAttribute("data-sku")||"");if(x.checked)bulkEntrySelectedMasterNames.add(name);else bulkEntrySelectedMasterNames.delete(name);});
     if(allBtn) allBtn.textContent=header.checked ? "☐ Desmarcar todos" : "☑ Selecionar todos";
   };
 }
@@ -3008,6 +3173,8 @@ function renderMasters(){
   });
 
   wireMasterBulkActions();
+  bulkEntryRestoreSelection();
+  body.querySelectorAll(".master-select").forEach(box=>box.addEventListener("change",()=>{bulkEntryRememberSelection();bulkEntryRestoreSelection();}));
 }
 
 window.viewMaster=function(id){
