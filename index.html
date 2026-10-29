@@ -592,7 +592,7 @@ table{border-collapse:collapse;width:100%;min-width:850px}th,td{padding:10px 11p
         </select>
       </label>
       <label>Percentual
-        <input id="bulkEntryPercent" type="number" min="0.01" max="99.99" step="0.01" placeholder="Ex.: 10" inputmode="decimal">
+        <input id="bulkEntryPercent" type="number" min="0.01" max="1000" step="0.01" placeholder="Ex.: 10" inputmode="decimal">
       </label>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button type="button" class="btn" id="previewBulkEntryAdjust">Pré-visualizar</button>
@@ -601,6 +601,13 @@ table{border-collapse:collapse;width:100%;min-width:850px}th,td{padding:10px 11p
     </div>
     <div id="bulkEntryAdjustStatus" class="notice" style="margin-top:12px">Nenhum ajuste preparado. Selecione os SKU Mestres e informe o percentual.</div>
     <div id="bulkEntryAdjustPreview" class="bulk-entry-preview" style="display:none"></div>
+    <div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <b>Últimos ajustes</b>
+        <button type="button" class="btn secondary" id="undoBulkEntryAdjust" disabled>↩ Desfazer último ajuste</button>
+      </div>
+      <div id="bulkEntryHistory" class="sub" style="margin-top:8px">Carregando histórico…</div>
+    </div>
   </div>
 
   <div class="tablewrap"><table><thead><tr><th><input type="checkbox" id="masterSelectHeader" title="Selecionar todos os visíveis"></th><th>SKU MESTRE</th><th>CATEGORIA</th><th>ENTRADA</th><th>PREÇO VENDA</th><th>TEMPO PRODUÇÃO</th><th>MDF USADO</th><th>AÇÕES</th></tr></thead><tbody id="mastersBody"></tbody></table></div>
@@ -613,6 +620,7 @@ table{border-collapse:collapse;width:100%;min-width:850px}th,td{padding:10px 11p
     <select id="colorFilter"><option value="">Todas as cores</option></select>
     <select id="masterFilter"><option value="">Todos os mestres</option></select>
     <button class="btn green" id="newSku">+ Novo SKU dependente</button>
+    <button class="btn" id="recalcAllSkus" title="Recalcula entrada, custos e preços de todos os SKUs dependentes pela regra atual e mostra uma prévia antes de salvar">🔄 Recalcular preços</button>
     <button class="btn" id="exportSkuDependents">⬇ Exportar SKU e Dependentes</button>
     <button class="btn" id="downloadBulkSkusTemplate">⬇ Modelo cadastro em massa</button>
     <label class="btn" for="importBulkSkus" style="cursor:pointer">⬆ Cadastrar em massa</label>
@@ -1532,9 +1540,9 @@ table{border-collapse:collapse;width:100%;min-width:850px}th,td{padding:10px 11p
     <div class="tablewrap">
       <table style="min-width:1050px">
         <thead><tr>
-          <th>DATA</th><th>TIPO</th><th>VENDA BRUTA</th><th>CANCELADAS / DEVOLVIDAS</th><th>TAXA SHOPEE</th><th>RESULTADO LÍQUIDO SHOPEE</th><th>REGISTROS</th><th>ARQUIVO</th><th>OBSERVAÇÃO</th>
+          <th>DATA</th><th>TIPO</th><th>VENDA BRUTA</th><th>CANCELADAS / DEVOLVIDAS</th><th>TAXA SHOPEE</th><th>RESULTADO LÍQUIDO SHOPEE</th><th>REGISTROS</th><th>ARQUIVO</th><th>OBSERVAÇÃO</th><th></th>
         </tr></thead>
-        <tbody id="faturamentoBody"><tr><td colspan="9" class="empty">Nenhuma conferência salva na base de faturamento.</td></tr></tbody>
+        <tbody id="faturamentoBody"><tr><td colspan="10" class="empty">Nenhuma conferência salva na base de faturamento.</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -1950,7 +1958,7 @@ table{border-collapse:collapse;width:100%;min-width:850px}th,td{padding:10px 11p
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import { getFirestore, collection, getDocs, getDoc, doc, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, getDoc, doc, setDoc, writeBatch, query, where } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 
 const firebaseConfig = {"apiKey":"AIzaSyBv78q2fiMNGzoYilq4OqaHGYxZvP0iBHU","authDomain":"mlf-decor.firebaseapp.com","projectId":"mlf-decor","storageBucket":"mlf-decor.firebasestorage.app","messagingSenderId":"1026129835378","appId":"1:1026129835378:web:09ed28290ee766acc9d9eb"};
@@ -2502,13 +2510,13 @@ async function loadData(){
   };
 
   const [ms,ss,md,fp,sup,ent,conf]=await Promise.all([
-    carregar("SKU Mestre",mastersRef,null,(a,b)=>String(a.skuMestre||"").localeCompare(String(b.skuMestre||""))),
-    carregar("SKUs",skusRef,null,(a,b)=>String(a.sku||"").localeCompare(String(b.sku||""))),
+    carregar("SKU Mestre",mastersRef,null,(a,b)=>String(a.skuMestre||"").localeCompare(String(b.skuMestre||"")),x=>!x.excluido),
+    carregar("SKUs",skusRef,null,(a,b)=>String(a.sku||"").localeCompare(String(b.sku||"")),x=>!x.excluido),
     carregar("Materiais",mdfRef,null,(a,b)=>String(a.descricao||"").localeCompare(String(b.descricao||""))),
     carregar("Contas a pagar",financeiroRef,null,(a,b)=>String(a.dataVencimento||"").localeCompare(String(b.dataVencimento||"")),x=>!x.excluida),
     carregar("Fornecedores",fornecedoresRef,null,(a,b)=>String(a.nome||"").localeCompare(String(b.nome||"")),x=>!x.excluido),
     carregar("Entradas de dinheiro",entradasRef,null,(a,b)=>String(a.dataEntrada||"").localeCompare(String(b.dataEntrada||"")),x=>!x.excluida),
-    carregar("Conferências",conferenceCollection(),null,(a,b)=>String(b.criadoEm||"").localeCompare(String(a.criadoEm||"")),x=>x.status==="CABECALHO")
+    carregar("Conferências",headersOnly(conferenceCollection()),null,(a,b)=>String(b.criadoEm||"").localeCompare(String(a.criadoEm||"")),x=>x.status==="CABECALHO")
   ]);
 
   if(ms!==null) masters=ms;
@@ -2571,9 +2579,10 @@ function bulkEntryPreview(){
   const percent=Number(String(document.getElementById("bulkEntryPercent")?.value||"").replace(",","."));
   const direction=document.getElementById("bulkEntryDirection")?.value||"increase";
   if(!selected.length){bulkEntrySetStatus("Selecione pelo menos um SKU Mestre na tabela ou clique em Selecionar todos.",true);return null;}
-  if(!Number.isFinite(percent)||percent<=0||percent>=100){
-    bulkEntrySetStatus("Informe um percentual maior que 0 e menor que 100. A redução não pode zerar nem deixar a entrada negativa.",true);return null;
-  }
+  if(!Number.isFinite(percent)||percent<=0){bulkEntrySetStatus("Informe um percentual maior que 0.",true);return null;}
+  // Redução: abaixo de 100% (não pode zerar nem deixar a entrada negativa). Aumento: até 1000%.
+  if(direction==="decrease"&&percent>=100){bulkEntrySetStatus("Para diminuir, informe um percentual menor que 100. A redução não pode zerar nem deixar a entrada negativa.",true);return null;}
+  if(direction!=="decrease"&&percent>1000){bulkEntrySetStatus("Para aumentar, informe um percentual de até 1000%.",true);return null;}
   const factor=direction==="decrease"?(1-percent/100):(1+percent/100);
   const rows=selected.map(m=>{
     const oldEntry=Number(m.entrada)||0;
@@ -2627,9 +2636,21 @@ async function applyBulkEntryAdjust(){
     }
     depUpdates.forEach(({s,payload})=>Object.assign(s,payload));
 
+    // Histórico do ajuste (permite desfazer). Se não for possível gravar, o ajuste já está salvo
+    // e apenas o histórico fica sem este registro.
+    let avisoHistorico="";
+    try{
+      const logRef=bulkEntryLogCollection();
+      if(!logRef)throw new Error("Histórico indisponível");
+      const logId=`AJUSTE-${Date.now()}`;
+      await setDoc(doc(logRef,logId),{criadoEm:new Date().toISOString(),criadoPor:currentUser?.email||"",percentual:plan.percent,direcao:plan.direction,desfeito:false,
+        itens:plan.rows.map(r=>({id:r.m.id,skuMestre:String(r.m.skuMestre||""),entradaAntes:r.oldEntry,entradaDepois:r.newEntry}))});
+    }catch(e){console.warn("Histórico do ajuste em massa:",e);avisoHistorico=" (Não foi possível registrar no histórico; este ajuste não poderá ser desfeito pelo botão.)";}
+
     const preview=document.getElementById("bulkEntryAdjustPreview");
     if(preview)preview.style.display="none";
-    bulkEntrySetStatus(`Concluído: ${updatedMasters.length} entrada(s) atualizada(s) e ${depUpdates.length} SKU(s) dependente(s) recalculado(s) e salvo(s).`);
+    bulkEntrySetStatus(`Concluído: ${updatedMasters.length} entrada(s) atualizada(s) e ${depUpdates.length} SKU(s) dependente(s) recalculado(s) e salvo(s).${avisoHistorico}`);
+    renderBulkEntryHistory();
     toast(`Ajuste concluído: ${updatedMasters.length} mestre(s), ${depUpdates.length} dependente(s) recalculado(s).`);
     bulkEntrySelectedMasterNames.clear();
     renderAll();
@@ -2641,12 +2662,67 @@ async function applyBulkEntryAdjust(){
     if(btn){btn.disabled=false;btn.textContent="Aplicar ajuste";}
   }
 }
+/* ===== Histórico e "Desfazer" do ajuste em massa ===== */
+function bulkEntryLogCollection(){
+  return activeSettingsUid ? collection(db,"usuarios",activeSettingsUid,"ajustes_entrada") : null;
+}
+let bulkEntryLogs=[];
+async function renderBulkEntryHistory(){
+  const box=document.getElementById("bulkEntryHistory"), undoBtn=document.getElementById("undoBulkEntryAdjust");
+  if(!box)return;
+  try{
+    const ref=bulkEntryLogCollection();if(!ref||!firebaseOnline)throw new Error("Firebase não conectado");
+    const snap=await getDocs(ref);
+    bulkEntryLogs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.criadoEm||"").localeCompare(String(a.criadoEm||"")));
+    const recentes=bulkEntryLogs.slice(0,5);
+    box.innerHTML=recentes.length?recentes.map(l=>`<div>${esc(formatDateTimeBR(l.criadoEm))} — ${l.direcao==="decrease"?"diminuição":"aumento"} de <b>${Number(l.percentual||0).toLocaleString("pt-BR")}%</b> em ${(l.itens||[]).length} mestre(s)${l.criadoPor?` por ${esc(l.criadoPor)}`:""}${l.desfeito?' <span style="color:var(--muted)">(desfeito)</span>':""}</div>`).join(""):"Nenhum ajuste registrado.";
+    if(undoBtn)undoBtn.disabled=!bulkEntryLogs.some(l=>!l.desfeito);
+  }catch(e){box.textContent="Não foi possível carregar o histórico de ajustes.";if(undoBtn)undoBtn.disabled=true;}
+}
+async function undoLastBulkEntryAdjust(){
+  const log=bulkEntryLogs.find(l=>!l.desfeito);
+  if(!log){toast("Nenhum ajuste para desfazer.");return;}
+  // Só restaura os mestres cuja entrada continua igual ao valor deixado pelo ajuste; se alguém
+  // alterou a entrada depois, esse mestre é mantido como está e listado no aviso.
+  const restaurar=[], alterados=[];
+  (log.itens||[]).forEach(it=>{
+    const m=masters.find(x=>x.id===it.id);
+    if(!m)return;
+    if(Math.abs((Number(m.entrada)||0)-(Number(it.entradaDepois)||0))<0.005)restaurar.push({m,entrada:Number(it.entradaAntes)||0});
+    else alterados.push(m.skuMestre);
+  });
+  if(!restaurar.length){alert("Nenhum mestre deste ajuste pode ser restaurado: as entradas foram alteradas depois do ajuste.");return;}
+  if(!window.confirm(`Desfazer o ajuste de ${formatDateTimeBR(log.criadoEm)} (${log.direcao==="decrease"?"diminuição":"aumento"} de ${Number(log.percentual||0).toLocaleString("pt-BR")}%)?\n\n${restaurar.length} mestre(s) voltarão à entrada anterior e os dependentes serão recalculados.${alterados.length?`\n\n${alterados.length} mestre(s) foram alterados depois do ajuste e NÃO serão restaurados: ${alterados.slice(0,10).join(", ")}${alterados.length>10?"…":""}`:""}`))return;
+  try{
+    if(!firebaseOnline||!mastersRef||!skusRef)throw new Error("Firebase não conectado");
+    const now=new Date().toISOString();
+    for(let i=0;i<restaurar.length;i+=450){
+      const batch=writeBatch(db);
+      restaurar.slice(i,i+450).forEach(({m,entrada})=>batch.set(doc(mastersRef,m.id),{entrada,precoVendaPlanilha:calculateMasterSalePrice(entrada),precoVenda:calculateMasterSalePrice(entrada),atualizadoEm:now},{merge:true}));
+      await batch.commit();
+    }
+    restaurar.forEach(({m,entrada})=>Object.assign(m,{entrada,precoVendaPlanilha:calculateMasterSalePrice(entrada),precoVenda:calculateMasterSalePrice(entrada)}));
+    const nomes=new Set(restaurar.map(r=>String(r.m.skuMestre||"").trim()));
+    const depUpdates=skus.filter(s=>normalizeSkuMestres(s).some(n=>nomes.has(n))).map(s=>({s,payload:buildDependentComputedPayload(s)})).filter(x=>x.payload);
+    for(let i=0;i<depUpdates.length;i+=450){
+      const batch=writeBatch(db);
+      depUpdates.slice(i,i+450).forEach(({s,payload})=>batch.set(doc(skusRef,s.id),payload,{merge:true}));
+      await batch.commit();
+    }
+    depUpdates.forEach(({s,payload})=>Object.assign(s,payload));
+    await setDoc(doc(bulkEntryLogCollection(),log.id),{desfeito:true,desfeitoEm:now,desfeitoPor:currentUser?.email||""},{merge:true});
+    renderAll();await renderBulkEntryHistory();
+    bulkEntrySetStatus(`Ajuste desfeito: ${restaurar.length} mestre(s) restaurado(s) e ${depUpdates.length} dependente(s) recalculado(s).`);
+    toast("Ajuste desfeito.");
+  }catch(err){console.error("Desfazer ajuste em massa:",err);toast("Não foi possível desfazer o ajuste. Verifique o Firebase.");}
+}
 function initBulkEntryAdjust(){
+  document.getElementById("undoBulkEntryAdjust")?.addEventListener("click",undoLastBulkEntryAdjust);
   document.getElementById("openBulkEntryAdjust")?.addEventListener("click",()=>{
     const panel=document.getElementById("bulkEntryAdjustPanel");
     bulkEntryRememberSelection();
     panel?.classList.toggle("open");
-    if(panel?.classList.contains("open"))panel.scrollIntoView({behavior:"smooth",block:"nearest"});
+    if(panel?.classList.contains("open")){panel.scrollIntoView({behavior:"smooth",block:"nearest"});renderBulkEntryHistory();}
   });
   document.getElementById("closeBulkEntryAdjust")?.addEventListener("click",()=>document.getElementById("bulkEntryAdjustPanel")?.classList.remove("open"));
   document.getElementById("previewBulkEntryAdjust")?.addEventListener("click",bulkEntryPreview);
@@ -2655,6 +2731,54 @@ function initBulkEntryAdjust(){
   document.getElementById("bulkEntryDirection")?.addEventListener("change",()=>{const preview=document.getElementById("bulkEntryAdjustPreview");if(preview)preview.style.display="none";});
 }
 initBulkEntryAdjust();
+
+/* ===== Recalcular preços de TODOS os SKUs dependentes (com prévia) =====
+   Usa a regra única do sistema: soma das entradas dos SKU Mestres × UNID. do dependente.
+   Serve para corrigir dependentes que ficaram com preço desatualizado (ex.: kits que foram
+   recalculados sem as unidades ou cujo mestre foi renomeado). */
+function recalcDependentDiff(s,payload){
+  return Object.keys(payload).some(key=>{
+    const a=s[key], b=payload[key];
+    if(typeof a==='number'||typeof b==='number')return Math.abs((Number(a)||0)-(Number(b)||0))>0.000001;
+    if(Array.isArray(a)||Array.isArray(b))return JSON.stringify(a??null)!==JSON.stringify(b??null);
+    return String(a??'')!==String(b??'');
+  });
+}
+function openRecalcAllSkus(){
+  const changes=[], incompletos=[];
+  skus.forEach(s=>{
+    const faltando=missingMastersForSku(s);
+    if(faltando.length){incompletos.push({s,faltando});return;}
+    const payload=buildDependentComputedPayload(s);
+    if(payload&&recalcDependentDiff(s,payload))changes.push({s,payload});
+  });
+  const fmtDiff=(a,b)=>{const d=(Number(b)||0)-(Number(a)||0);return `<span style="color:${d<0?'#b42318':'#176b3d'};font-weight:700">${d>=0?'+':''}${brl(d)}</span>`;};
+  const precoMudou=changes.filter(c=>Math.abs((Number(c.s.precoMinimo)||0)-(Number(c.payload.precoMinimo)||0))>0.004);
+  const linhas=precoMudou.slice(0,300).map(({s,payload})=>`<tr><td><b>${esc(s.sku)}</b></td><td>${esc(normalizeSkuMestres(s).join(" + "))}</td><td style="text-align:center">${Number(payload.unidades)||1}</td><td class="money">${brl(s.precoMinimo)}</td><td class="money"><b>${brl(payload.precoMinimo)}</b></td><td class="money">${fmtDiff(s.precoMinimo,payload.precoMinimo)}</td></tr>`).join("");
+  const incompHtml=incompletos.length?`<div class="notice" style="margin:0;border-color:#c93636;color:#b42323"><b>${incompletos.length} SKU(s) NÃO serão recalculados</b> porque apontam para SKU Mestre que não existe mais no cadastro. Edite cada um e selecione os mestres corretos:<br>${incompletos.slice(0,60).map(x=>`<b>${esc(x.s.sku)}</b> → ${esc(x.faltando.join(", "))}`).join("<br>")}${incompletos.length>60?"<br>…":""}</div>`:"";
+  openModal("Recalcular preços dos SKUs dependentes",`<div style="display:grid;gap:12px">
+    <div class="notice" style="margin:0">Regra aplicada: <b>soma das entradas dos SKU Mestres × unidades do dependente</b>, com custos de material e embalagem atuais. Nada é salvo até você confirmar.</div>
+    <div><b>${changes.length}</b> SKU(s) com valores desatualizados${precoMudou.length?`, sendo <b>${precoMudou.length}</b> com mudança no preço mínimo`:""}.</div>
+    ${incompHtml}
+    ${precoMudou.length?`<div style="max-height:380px;overflow:auto"><table><thead><tr><th>SKU</th><th>SKU Mestre(s)</th><th>Unid.</th><th>Preço mín. atual</th><th>Preço mín. novo</th><th>Diferença</th></tr></thead><tbody>${linhas}</tbody></table>${precoMudou.length>300?`<div class="sub" style="margin-top:6px">Mostrando 300 de ${precoMudou.length}.</div>`:""}</div>`:""}
+    <div style="display:flex;justify-content:flex-end;gap:10px"><button type="button" class="btn secondary" onclick="window.closeModal()">Cancelar</button>${changes.length?`<button type="button" class="btn green" id="confirmRecalcAllSkus">Salvar ${changes.length} alteração(ões)</button>`:""}</div>
+  </div>`);
+  document.getElementById("confirmRecalcAllSkus")?.addEventListener("click",async e=>{
+    const btn=e.currentTarget;btn.disabled=true;btn.textContent="Salvando…";
+    try{
+      if(!firebaseOnline||!skusRef)throw new Error("Firebase não conectado");
+      for(let i=0;i<changes.length;i+=450){
+        const batch=writeBatch(db);
+        changes.slice(i,i+450).forEach(({s,payload})=>batch.set(doc(skusRef,s.id),{...payload,atualizadoEm:new Date().toISOString()},{merge:true}));
+        await batch.commit();
+      }
+      changes.forEach(({s,payload})=>Object.assign(s,payload));
+      closeModal();renderAll();
+      toast(`${changes.length} SKU(s) dependente(s) recalculado(s) e salvo(s).`);
+    }catch(err){console.error("Recalcular dependentes:",err);toast("Não foi possível salvar o recálculo. Verifique o Firebase.");btn.disabled=false;btn.textContent="Tentar novamente";}
+  });
+}
+document.getElementById("recalcAllSkus")?.addEventListener("click",openRecalcAllSkus);
 
 
 function selectedMasterSkus(){
@@ -3290,10 +3414,17 @@ function getDependentPricingBase(s, list=null){
   return {entradaMestres,unidades,entradaPrecoTotal:entradaMestres*unidades};
 }
 
+// Nomes de SKU Mestre do dependente que não existem mais no cadastro (renomeado/excluído).
+function missingMastersForSku(s){
+  return normalizeSkuMestres(s).filter(name=>!masters.some(m=>String(m.skuMestre||"").trim()===name));
+}
 function buildDependentComputedPayload(s){
   const names=normalizeSkuMestres(s);
   const list=mastersForSku(s);
   if(!list.length) return null;
+  // Kit com algum mestre ausente: NÃO recalcula. Antes o preço era calculado só com os
+  // mestres encontrados e o SKU ficava mais barato sem nenhum aviso.
+  if(list.length!==names.length) return null;
   const pricing=getDependentPricingBase(s,list);
   const tempoMaquinaMin=list.reduce((sum,m)=>sum+getMasterProductionTimes(m).machine,0);
   const tempoMontagemMin=list.reduce((sum,m)=>sum+getMasterProductionTimes(m).assembly,0);
@@ -3809,8 +3940,9 @@ window.editMaster=async id=>{
 
     <label class="full">Links das imagens do produto<textarea name="imageLinks" rows="4" placeholder="Cole os links das imagens, um por linha">${esc(Array.isArray(m.imageLinks)?m.imageLinks.join("\n"):String(m.imageLinks||""))}</textarea><small style="color:var(--muted);display:block;margin-top:4px">Informe um link por linha. Os links ficarão salvos no SKU Mestre.</small></label>
     <label class="full">Observação<textarea name="observacao">${esc(m.observacao||"")}</textarea></label>
-    <div class="full"><button class="btn green">Salvar no Firebase</button></div>
+    <div class="full" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><button type="button" class="btn secondary" id="deleteMasterBtn" style="color:#b42318;border-color:#e3b4ae">🗑 Excluir SKU Mestre</button><button class="btn green">Salvar no Firebase</button></div>
   </form>`);
+  document.getElementById("deleteMasterBtn")?.addEventListener("click",()=>deleteMasterRecord(m.id));
 
   const list=document.getElementById("mdfMaterialsList");
   const masterFormEl=document.getElementById("masterForm");
@@ -3895,6 +4027,12 @@ window.editMaster=async id=>{
       // Guarda o nome anterior para localizar corretamente os SKUs dependentes
       // mesmo que o SKU Mestre seja renomeado durante a edição.
       const oldMasterName=String(m.skuMestre||"").trim();
+      const nomeNovo=String(updated.skuMestre||"").trim();
+      if(!nomeNovo){toast("Informe o SKU Mestre.");return;}
+      // Renomear para o nome de OUTRO mestre criaria dois mestres com o mesmo nome e
+      // misturaria os SKUs dependentes dos dois.
+      const nomeEmUso=masters.find(x=>x!==m && String(x.skuMestre||"").trim().toUpperCase()===nomeNovo.toUpperCase());
+      if(nomeEmUso){alert(`Já existe outro SKU Mestre chamado "${nomeEmUso.skuMestre}". Escolha um nome diferente.`);return;}
       if(!firebaseOnline||!mastersRef)throw new Error("Firebase não conectado");await setDoc(doc(mastersRef,m.id),updated,{merge:true});
       Object.assign(m,updated);
 
@@ -3903,53 +4041,33 @@ window.editMaster=async id=>{
       // passa a ser a soma das Entradas com lucro atuais de todos os mestres
       // selecionados. Os preços mínimo, médio e ideal são recalculados pela
       // mesma regra do sistema: o +35% do PRETO só vale quando os SKU Mestre(s) do kit são da categoria MDF.
+      const newMasterName=String(updated.skuMestre||"").trim();
+      const renamed=!!oldMasterName && !!newMasterName && oldMasterName!==newMasterName;
       const deps=skus.filter(s=>{
         const names=normalizeSkuMestres(s);
-        return names.includes(oldMasterName) || names.includes(String(updated.skuMestre||"").trim());
+        return names.includes(oldMasterName) || names.includes(newMasterName);
       });
 
-      const dependentPayload=(s)=>{
-        const names=normalizeSkuMestres(s);
-        const mastersAtualizados=names.map(name=>masters.find(mx=>String(mx.skuMestre||"").trim()===String(name).trim())).filter(Boolean);
-        const entradaKit=mastersAtualizados.reduce((sum,mx)=>sum+(Number(mx.entrada)||0),0);
-        const tempoProducaoKit=mastersAtualizados.reduce((sum,mx)=>sum+(Number(mx.tempoProducaoMin)||0),0);
-        const p=calcPrices(entradaKit,s.cor||"CRU",aplicaRegraPretoSomenteMdf(mastersAtualizados));
-        const masterPrimary=mastersAtualizados[0]||masters.find(mx=>String(mx.skuMestre||"").trim()===String(updated.skuMestre||"").trim());
-        const mats=mastersAtualizados.flatMap(mx=>normalizeMdfMateriais(mx));
-        const custoMdfKit=mastersAtualizados.reduce((sum,mx)=>sum+(Number(getMdfCostForMaster(mx).custoUnit)||Number(mx.custoMdf)||0),0);
-        const custoEmbalagemKit=mastersAtualizados.reduce((sum,mx)=>sum+getEmbalagemCostForMaster(mx),0);
-        const total=(p.entradaAjustada*(Number(s.unidades)||1))+custoMdfKit+custoEmbalagemKit;
-        return {
+      // Os dependentes guardam o SKU Mestre pelo NOME. Se o mestre foi renomeado, o nome
+      // antigo é trocado pelo novo em cada dependente; antes o vínculo se perdia e o preço
+      // do dependente era recalculado com entrada zero (R$ 5,00).
+      // O recálculo usa a MESMA regra do restante do sistema (buildDependentComputedPayload):
+      // entrada dos mestres somada × UNID. do dependente. Antes esta tela ignorava as unidades.
+      let depsKitIncompleto=0;
+      const depUpdates=deps.map(s=>{
+        const names=normalizeSkuMestres(s).map(n=>renamed&&n===oldMasterName?newMasterName:n);
+        const nameFields={skuMestres:names,skuMestre:String(renamed&&String(s.skuMestre||"").trim()===oldMasterName?newMasterName:(s.skuMestre||names[0]||"")).trim()};
+        const computed=buildDependentComputedPayload({...s,...nameFields});
+        if(!computed){depsKitIncompleto++;return {s,payload:nameFields};}
+        return {s,payload:{
           ownerUid:String(s?.ownerUid||s?.criadoPorUid||currentUser?.uid||activeWorkspaceUid||"").trim(),
           criadoPorUid:String(s?.criadoPorUid||s?.ownerUid||currentUser?.uid||activeWorkspaceUid||"").trim(),
           criadoPorEmail:String(s?.criadoPorEmail||currentUser?.email||"").toLowerCase(),
-          entradaUnitario:entradaKit,
-          modoTempoSeparado:true,
-          tempoMaquinaMin:mastersAtualizados.reduce((sum,mx)=>sum+getMasterProductionTimes(mx).machine,0),
-          tempoMontagemMin:mastersAtualizados.reduce((sum,mx)=>sum+getMasterProductionTimes(mx).assembly,0),
-          tempoProducaoMin:tempoProducaoKit,
-          ...p,
-          entradaTotal:total,
-          skuMestre:String(masterPrimary?.skuMestre||s.skuMestre||"").trim(),
-          skuMestres:names.length?names:(masterPrimary?[String(masterPrimary.skuMestre)]:[]),
-          categoria:[...new Set(mastersAtualizados.map(mx=>mx.categoria||"MDF"))].join(" + ") || s.categoria || updated.categoria,
-          mdfMateriais:mats,
-          mdfId:masterPrimary?.mdfId||"",
-          mdfDescricao:mats.map(x=>x.mdfDescricao).filter(Boolean).join(" + ")||masterPrimary?.mdfDescricao||"",
-          mdfEspessura:masterPrimary?.mdfEspessura||"",
-          mdfLarguraCm:Number(masterPrimary?.mdfLarguraCm)||0,
-          mdfComprimentoCm:Number(masterPrimary?.mdfComprimentoCm)||0,
-          mdfQuantidade:Number(masterPrimary?.mdfQuantidade)||1,
-          custoMdf:custoMdfKit,
-          custoEmbalagem:custoEmbalagemKit,
-          embalagemId:masterPrimary?.embalagemId||"",
-          embalagemDescricao:mastersAtualizados.map(mx=>mx.embalagemDescricao).filter(Boolean).join(" + "),
-          embalagemTipo:mastersAtualizados.map(mx=>mx.embalagemTipo).filter(Boolean).join(" + "),
-          embalagemTamanho:mastersAtualizados.map(mx=>mx.embalagemTamanho).filter(Boolean).join(" + ")
-        };
-      };
-
-      const depUpdates=deps.map(s=>({s,payload:dependentPayload(s)}));
+          ...computed,
+          skuMestres:names,
+          skuMestre:computed.skuMestre||nameFields.skuMestre
+        }};
+      });
       if(firebaseOnline && depUpdates.length){
         // Firestore aceita no máximo 500 operações por batch.
         const batches=[];
@@ -3969,10 +4087,43 @@ window.editMaster=async id=>{
       m.embalagemValor=computedNow.custoEmbalagem;
       renderAll();
       closeModal();
-      toast(`SKU mestre salvo. ${deps.length} SKU(s) dependente(s) tiveram Entrada e preços atualizados automaticamente.`);
+      toast(`SKU mestre salvo. ${deps.length-depsKitIncompleto} SKU(s) dependente(s) tiveram Entrada e preços atualizados automaticamente.`);
+      if(depsKitIncompleto)alert(`${depsKitIncompleto} SKU(s) dependente(s) deste mestre fazem parte de kits com outro SKU Mestre que não existe mais no cadastro. O nome foi atualizado, mas os preços deles NÃO foram recalculados. Edite esses SKUs e selecione os mestres corretos.`);
     }catch(err){console.error(err);toast("Não foi possível salvar o SKU mestre e atualizar os dependentes.");}
   };
 };
+
+/* ===== Exclusão de SKU Mestre / SKU dependente =====
+   É uma marcação (excluido:true), como nas contas e entradas: o documento continua no Firebase
+   e pode ser recuperado pelo Console, mas some do sistema. Um mestre só pode ser excluído
+   quando não tiver SKUs dependentes, para nenhum dependente ficar sem mestre (preço errado). */
+async function deleteMasterRecord(id){
+  const m=masters.find(x=>x.id===id);if(!m)return;
+  const nome=String(m.skuMestre||"").trim();
+  const deps=skus.filter(s=>normalizeSkuMestres(s).includes(nome));
+  if(deps.length){
+    alert(`Não é possível excluir "${nome}": ${deps.length} SKU(s) dependente(s) usam este mestre.\n\n${deps.slice(0,25).map(s=>"• "+s.sku).join("\n")}${deps.length>25?"\n…":""}\n\nExclua esses dependentes ou troque o mestre deles antes.`);
+    return;
+  }
+  if(!window.confirm(`Excluir o SKU Mestre "${nome}"?\n\nEle deixará de aparecer no sistema.`))return;
+  try{
+    if(!firebaseOnline||!mastersRef)throw new Error("Firebase não conectado");
+    await setDoc(doc(mastersRef,m.id),{excluido:true,excluidoEm:new Date().toISOString(),excluidoPor:currentUser?.email||""},{merge:true});
+    masters=masters.filter(x=>x!==m);
+    bulkEntrySelectedMasterNames.delete(nome);
+    closeModal();renderAll();toast(`SKU Mestre "${nome}" excluído.`);
+  }catch(err){console.error("Excluir SKU Mestre:",err);toast("Não foi possível excluir o SKU Mestre. Verifique o Firebase.");}
+}
+async function deleteSkuRecord(id){
+  const s=skus.find(x=>x.id===id);if(!s)return;
+  if(!window.confirm(`Excluir o SKU dependente "${s.sku}"?\n\nEle deixará de aparecer no sistema, nas conferências e na Nova Promoção Shopee.`))return;
+  try{
+    if(!firebaseOnline||!skusRef)throw new Error("Firebase não conectado");
+    await setDoc(doc(skusRef,s.id),{excluido:true,excluidoEm:new Date().toISOString(),excluidoPor:currentUser?.email||""},{merge:true});
+    skus=skus.filter(x=>x!==s);
+    closeModal();renderAll();toast(`SKU dependente "${s.sku}" excluído.`);
+  }catch(err){console.error("Excluir SKU dependente:",err);toast("Não foi possível excluir o SKU dependente. Verifique o Firebase.");}
+}
 
 window.editSku=async id=>{
   const s=skus.find(x=>x.id===id);if(!s)return;
@@ -3988,8 +4139,9 @@ window.editSku=async id=>{
     <label>Custo MDF do kit<input name="custoMdf" value="${brl(bundle.custoMdf||s.custoMdf||0)}" readonly></label>
     <label>Custo de embalagem do kit<input name="custoEmbalagem" value="${brl(bundle.embalagemCost||s.custoEmbalagem||0)}" readonly></label>
     <div class="full"><div id="skuBundleNotice" class="notice" style="margin:0 0 12px">${selected.length} SKU Mestre(s) selecionado(s). O custo de MDF e a composição do kit serão somados entre os mestres. <b>O +35% do PRETO só é aplicado se todos os SKU Mestre(s) selecionados forem da categoria MDF.</b></div></div>
-    <div class="full"><button class="btn green">Recalcular e salvar</button></div>
+    <div class="full" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><button type="button" class="btn secondary" id="deleteSkuBtn" style="color:#b42318;border-color:#e3b4ae">🗑 Excluir SKU dependente</button><button class="btn green">Recalcular e salvar</button></div>
   </form>`);
+  document.getElementById("deleteSkuBtn")?.addEventListener("click",()=>deleteSkuRecord(s.id));
   const form=document.getElementById("skuForm"),entry=form.querySelector('[name="entradaUnitario"]');
   wireSkuMasterPicker(form,entry,false);
   form.onsubmit=async e=>{
@@ -4294,7 +4446,7 @@ document.getElementById("newSku").onclick=()=>{
     const id=docId(sku);
     try{if(!firebaseOnline||!skusRef)throw new Error("Firebase não conectado");
       const conflitoRemotoSku=await remoteDocData(skusRef,id);
-      if(conflitoRemotoSku){alert(docIdConflictMessage("SKU dependente",sku,conflitoRemotoSku,"sku")+" Atualize a página para ver os dados mais recentes.");return;}
+      if(conflitoRemotoSku&&!conflitoRemotoSku.excluido){alert(docIdConflictMessage("SKU dependente",sku,conflitoRemotoSku,"sku")+" Atualize a página para ver os dados mais recentes.");return;}
       await setDoc(doc(skusRef,id),updated);skus.push({id,...updated});skus.sort((a,b)=>String(a.sku).localeCompare(String(b.sku)));renderAll();closeModal();toast(`Novo SKU dependente cadastrado com ${skuMestres.length} SKU Mestre(s).`);}catch(err){console.error(err);toast("Não foi possível cadastrar o SKU dependente.");}
   };
 };
@@ -4342,7 +4494,7 @@ function openNewMasterModal(prefill={}){
     if(conflitoLocal){alert(docIdConflictMessage("SKU Mestre",m.skuMestre,conflitoLocal,"skuMestre"));return;}
     try{if(!firebaseOnline||!mastersRef)throw new Error("Firebase não conectado");
       const conflitoRemoto=await remoteDocData(mastersRef,id);
-      if(conflitoRemoto){alert(docIdConflictMessage("SKU Mestre",m.skuMestre,conflitoRemoto,"skuMestre")+" Atualize a página para ver os dados mais recentes.");return;}
+      if(conflitoRemoto&&!conflitoRemoto.excluido){alert(docIdConflictMessage("SKU Mestre",m.skuMestre,conflitoRemoto,"skuMestre")+" Atualize a página para ver os dados mais recentes.");return;}
       await setDoc(doc(mastersRef,id),m);masters.push({id,...m});masters.sort((a,b)=>a.skuMestre.localeCompare(b.skuMestre));
 renderAll();closeModal();toast("Novo mestre criado.");}catch(err){toast("Erro ao criar mestre.");}
   };
@@ -7970,13 +8122,17 @@ async function renderPromoHistory(){
   try{
     let list=[];
     if(!firebaseOnline) throw new Error("Firebase não conectado");
-    const snap=await getDocs(promoCollection());
+    const snap=await getDocs(headersOnly(promoCollection()));
     list=snap.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.status==="CABECALHO");
     list.sort((a,b)=>String(b.criadoEm||"").localeCompare(String(a.criadoEm||"")));
     body.innerHTML=list.length?list.map(x=>`<tr><td><b>${formatDateBR(x.dataPromocao)}</b></td><td>${esc(x.nome||"—")}</td><td>${esc(x.arquivo||"—")}</td><td>${Number(x.totalSkus||0).toLocaleString("pt-BR")}</td><td>${Number(x.errosPreco||0).toLocaleString("pt-BR")}</td><td>${Number(x.skusFaltantes||0).toLocaleString("pt-BR")}</td><td>${formatDateTimeBR(x.criadoEm)}</td></tr>`).join(""):'<tr><td colspan="7" class="empty">Nenhuma promoção salva.</td></tr>';
   }catch(e){console.error(e);body.innerHTML='<tr><td colspan="7" class="empty">Não foi possível carregar o histórico.</td></tr>'; }
 }
 
+// Histórico de conferências/promoções: busca SOMENTE os documentos de cabeçalho. Antes o sistema
+// baixava também todos os blocos de linhas de todas as conferências já salvas a cada login,
+// deixando o carregamento mais lento (e mais caro no Firebase) a cada conferência nova.
+function headersOnly(ref){return query(ref,where("status","==","CABECALHO"));}
 function conferenceCollection(){
   return activeWorkspaceLegacy
     ? collection(db,"conferencias")
@@ -8041,6 +8197,33 @@ async function saveFaturamentoLancamento(record){
   await setDoc(doc(faturamentoCollection(),record.id),record,{merge:true});
 }
 
+// Exclui um lançamento do faturamento (ex.: conferência salva em duplicidade). É uma marcação
+// (status EXCLUIDO), como nas contas e entradas: o registro continua no Firebase.
+async function deleteFaturamentoLancamento(id){
+  const x=faturamentoLancamentos.find(r=>String(r.id)===String(id));if(!x)return;
+  const daily=x.tipo==="DAILY"||x.tipo==="DIARIA";
+  const periodo=x.dataPedidosFim&&x.dataPedidosFim!==x.dataPedidos?`${formatDateBR(x.dataPedidos)} até ${formatDateBR(x.dataPedidosFim)}`:formatDateBR(x.dataPedidos);
+  if(!window.confirm(`Excluir o lançamento de faturamento de ${periodo} (${brl(x.resultadoLiquidoShopee)})?\n\nEle deixa de ser somado no Faturamento e some do Histórico de conferências.${daily?"\n\nA entrada de dinheiro automática desta Conferência Diária também será excluída, se ainda não tiver sido recebida.":""}`))return;
+  try{
+    if(!firebaseOnline||!faturamentoRef)throw new Error("Firebase não conectado");
+    const now=new Date().toISOString(), por=currentUser?.email||"";
+    await setDoc(doc(faturamentoCollection(),x.id),{status:"EXCLUIDO",excluidoEm:now,excluidoPor:por},{merge:true});
+    try{await setDoc(doc(conferenceCollection(),x.sourceConferenceId||x.id),{excluido:true,excluidoEm:now,excluidoPor:por},{merge:true});}catch(e){console.warn("Histórico:",e);}
+    let avisoEntrada="";
+    if(daily&&entradasRef){
+      const entryRef=doc(entradasRef,docId(`ENT-CONFERENCIA-DIARIA-${x.dataPedidos}`));
+      const snap=await getDoc(entryRef);
+      if(snap.exists()&&!snap.data().excluida){
+        if(String(snap.data().dataRecebimento||"").trim())avisoEntrada=" A entrada de dinheiro já estava recebida e foi mantida.";
+        else{await setDoc(entryRef,{excluida:true,excluidaMotivo:"LANCAMENTO_FATURAMENTO_EXCLUIDO",atualizadoEm:now},{merge:true});entradasFinanceiras=entradasFinanceiras.filter(e=>String(e.id)!==String(entryRef.id));try{renderFinanceEntradas();}catch(e){}}
+      }
+    }
+    faturamentoLancamentos=faturamentoLancamentos.filter(r=>String(r.id)!==String(x.id));
+    renderFaturamento();try{await renderConferenceHistory();}catch(e){}
+    toast(`Lançamento excluído do faturamento.${avisoEntrada}`);
+  }catch(err){console.error("Excluir faturamento:",err);toast("Não foi possível excluir o lançamento. Verifique o Firebase.");}
+}
+
 async function loadFaturamento(){
   let list=[];
   try{
@@ -8093,7 +8276,9 @@ function renderFaturamento(){
     <td>${Number(x.registros||0).toLocaleString("pt-BR")}</td>
     <td>${esc(x.arquivo||"—")}</td>
     <td>${esc(x.observacao||"—")}</td>
-  </tr>`).join("")||'<tr><td colspan="9" class="empty">Nenhuma conferência encontrada para o filtro selecionado.</td></tr>';
+    <td><button type="button" class="btn secondary" style="padding:5px 9px;font-size:12px" data-del-faturamento="${esc(x.id)}" title="Excluir este lançamento do faturamento">Excluir</button></td>
+  </tr>`).join("")||'<tr><td colspan="10" class="empty">Nenhuma conferência encontrada para o filtro selecionado.</td></tr>';
+  body.querySelectorAll("[data-del-faturamento]").forEach(b=>b.onclick=()=>deleteFaturamentoLancamento(b.getAttribute("data-del-faturamento")));
 }
 
 async function upsertConferenceFutureEntry(type, meta, resultadoLiquido, recordId){
@@ -8104,11 +8289,18 @@ async function upsertConferenceFutureEntry(type, meta, resultadoLiquido, recordI
   const entryId=docId(`ENT-CONFERENCIA-DIARIA-${meta.orderDate}`);
   const valor=Number(resultadoLiquido)||0;
   const existing=entradasFinanceiras.find(x=>String(x.id)===String(entryId));
-  const record={id:entryId,descricao:`Resultado Líquido Shopee — Conferência ${meta.orderDate}`,origem:"Shopee — Conferência Diária",dataEntrada:meta.orderDate,valor,dataRecebimento:"",dataPrevista:dataPrevista,meioRecebimento:"Marketplace",status:"A RECEBER",automatico:true,tipoEntrada:"CONFERENCIA_DIARIA",sourceConferenceId:recordId,conferenceDate:meta.orderDate,conferenceDateEnd:meta.orderDateEnd||meta.orderDate,resultadoLiquidoShopee:valor,excluida:false,criadoEm:existing?.criadoEm||new Date().toISOString(),atualizadoEm:new Date().toISOString(),observacao:`Entrada automática: 19 dias após a data da planilha (${formatDateBR(meta.orderDate)}).`};
+  const record={id:entryId,descricao:`Resultado Líquido Shopee — Conferência ${meta.orderDate}`,origem:"Shopee — Conferência Diária",dataEntrada:meta.orderDate,valor,dataRecebimento:"",dataPrevista:dataPrevista,meioRecebimento:"Marketplace",status:"A RECEBER",automatico:true,tipoEntrada:"CONFERENCIA_DIARIA",sourceConferenceId:recordId,conferenceDate:meta.orderDate,conferenceDateEnd:meta.orderDateEnd||meta.orderDate,resultadoLiquidoShopee:valor,excluida:false,excluidaMotivo:"",criadoEm:existing?.criadoEm||new Date().toISOString(),atualizadoEm:new Date().toISOString(),observacao:`Entrada automática: 19 dias após a data da planilha (${formatDateBR(meta.orderDate)}).`};
   const changed=!existing || Math.abs((Number(existing.valor)||0)-valor)>0.009 || String(existing.dataPrevista||"")!==dataPrevista || String(existing.sourceConferenceId||"")!==String(recordId);
   try{
     if(!firebaseOnline||!entradasRef) throw new Error("Firebase não conectado");
     const entryRef=doc(entradasRef,entryId);
+    // Confere a entrada direto no Firebase antes de regravar. A lista local não inclui entradas
+    // excluídas, e regravar zerava o recebimento: uma entrada já marcada como RECEBIDA voltava
+    // para "A RECEBER", e uma entrada excluída voltava a aparecer.
+    const remoteSnap=await getDoc(entryRef);
+    const remote=remoteSnap.exists()?remoteSnap.data():null;
+    if(remote&&remote.excluida===true&&remote.excluidaMotivo!=="LANCAMENTO_FATURAMENTO_EXCLUIDO") return {created:false,updated:false,id:entryId,changed:false,skipped:"excluida",valor};
+    if(remote&&String(remote.dataRecebimento||"").trim()) return {created:false,updated:false,id:entryId,changed:false,skipped:"recebida",previous:Number(remote.valor)||0,valor,dataRecebimento:remote.dataRecebimento};
     await setDoc(entryRef,record,{merge:true});
     const confirmado=await getDoc(entryRef);
     if(!confirmado.exists()) throw new Error("O Firebase não confirmou a entrada automática da Conferência Diária.");
@@ -8117,7 +8309,7 @@ async function upsertConferenceFutureEntry(type, meta, resultadoLiquido, recordI
     if(pos>=0) entradasFinanceiras[pos]=savedEntry; else entradasFinanceiras.push(savedEntry);
     entradasFinanceiras.sort((a,b)=>String(a.dataEntrada||"").localeCompare(String(b.dataEntrada||"")));
     renderFinanceEntradas();
-    return {created:!existing,updated:!!existing&&changed,id:entryId,changed,previous:Number(existing?.valor),valor,dataPrevista,confirmed:true};
+    return {created:!remote,updated:!!remote&&changed,id:entryId,changed,previous:Number(remote?.valor??existing?.valor),valor,dataPrevista,confirmed:true};
   }catch(err){console.error("Não foi possível salvar a entrada futura da conferência:",err);return {created:false,updated:false,id:entryId,changed:false,error:err};}
 }
 
@@ -8128,20 +8320,42 @@ async function saveConference(type){
   const statusEl=document.getElementById(isUp?"upsellerSaveStatus":(isDaily?"diariaSaveStatus":"sobrasSaveStatus"));
   const period=validateConferencePeriod(meta.orderDate,meta.orderDateEnd); if(!period.ok){toast(period.message);return;}
   if(!rows.length && !cancel.length){toast("Importe uma planilha antes de salvar.");return;}
-  const recordId=docId(isDaily?`DAILY-${meta.orderDate}`:`${type}-${meta.orderDate}-${meta.orderDateEnd}-${Date.now()}`);
+  let recordId=docId(isDaily?`DAILY-${meta.orderDate}`:`${type}-${meta.orderDate}-${meta.orderDateEnd}-${Date.now()}`);
+  if(!isDaily){
+    // Cada salvamento criava um registro novo: salvar duas vezes o mesmo período DUPLICAVA o faturamento.
+    // Agora, se já existe uma conferência deste tipo para o mesmo período, ela é substituída.
+    if(!faturamentoLancamentosLoaded){try{await loadFaturamento();}catch(e){console.warn("Faturamento:",e);}}
+    const fimNovo=String(meta.orderDateEnd||meta.orderDate||"");
+    const dup=faturamentoLancamentos.find(x=>x&&x.status!=="EXCLUIDO"&&x.tipo===type&&String(x.dataPedidos||"")===String(meta.orderDate||"")&&String(x.dataPedidosFim||x.dataPedidos||"")===fimNovo);
+    if(dup){
+      const nomeTipo=isUp?"UpSeller":"Sobras / Shopee";
+      const periodo=fimNovo&&fimNovo!==meta.orderDate?`${formatDateBR(meta.orderDate)} até ${formatDateBR(fimNovo)}`:formatDateBR(meta.orderDate);
+      if(!window.confirm(`Já existe uma conferência ${nomeTipo} salva para ${periodo}${dup.arquivo?` (arquivo ${dup.arquivo})`:""}.\n\nOK = SUBSTITUIR a conferência existente por esta (o faturamento não será duplicado).\nCancelar = não salvar.`)){toast("Salvamento cancelado.");return;}
+      recordId=dup.id;
+    }
+  }
   const now=new Date().toISOString();
   const allRows=[...rows.map((r,i)=>({...r,__grupo:"VALIDOS",__indice:i})),...cancel.map((r,i)=>({...r,__grupo:"CANCELADOS",__indice:i}))];
   const resumoFaturamento=summarizeConferenceFaturamento(type); const novoResultado=Number(resumoFaturamento.resultadoLiquidoShopee)||0;
   let existingConference=null;
   try{if(!firebaseOnline)throw new Error("Firebase não conectado");const snap=await getDoc(doc(conferenceCollection(),recordId));if(snap.exists())existingConference={id:snap.id,...snap.data()};}catch(err){console.warn("Não foi possível consultar a conferência anterior:",err);toast("Firebase não está conectado. A conferência não foi salva.");return;}
   const previousResult=Number(existingConference?.resultadoLiquidoShopee)||0; const resultadoMudou=!existingConference||Math.abs(previousResult-novoResultado)>0.009;
-  const header={tipo:type,dataPedidos:meta.orderDate,dataPedidosFim:meta.orderDateEnd,observacao:meta.note||"",arquivo:meta.fileName||"",registrosValidos:rows.length,registrosCancelados:cancel.length,totalRegistros:allRows.length,vendaBruta:Number(resumoFaturamento.vendaBruta)||0,vendasCanceladasDevolvidas:Number(resumoFaturamento.vendasCanceladasDevolvidas)||0,taxaShopee:Number(resumoFaturamento.taxaShopee)||0,resultadoLiquidoShopee:novoResultado,criadoEm:existingConference?.criadoEm||now,atualizadoEm:now,criadoPor:existingConference?.criadoPor||currentUser?.email||"",atualizadoPor:currentUser?.email||"",status:"CABECALHO"};
+  const header={tipo:type,dataPedidos:meta.orderDate,dataPedidosFim:meta.orderDateEnd,observacao:meta.note||"",arquivo:meta.fileName||"",registrosValidos:rows.length,registrosCancelados:cancel.length,totalRegistros:allRows.length,vendaBruta:Number(resumoFaturamento.vendaBruta)||0,vendasCanceladasDevolvidas:Number(resumoFaturamento.vendasCanceladasDevolvidas)||0,taxaShopee:Number(resumoFaturamento.taxaShopee)||0,resultadoLiquidoShopee:novoResultado,criadoEm:existingConference?.criadoEm||now,atualizadoEm:now,criadoPor:existingConference?.criadoPor||currentUser?.email||"",atualizadoPor:currentUser?.email||"",status:"CABECALHO",excluido:false};
   try{
     if(!firebaseOnline)throw new Error("Firebase não conectado");
-    const ref=conferenceCollection();await setDoc(doc(ref,recordId),header,{merge:true});const chunkSize=350;for(let i=0;i<allRows.length;i+=chunkSize){const chunk=allRows.slice(i,i+chunkSize);const chunkId=`${recordId}__${String(i/chunkSize).padStart(5,"0")}`;await setDoc(doc(ref,chunkId),{tipo:type,status:"DETALHES",recordId,parte:Math.floor(i/chunkSize),dados:chunk,criadoEm:now},{merge:true});}if(statusEl)statusEl.innerHTML='<span style="color:green">✓ Conferência salva no Firebase.</span>';
+    const ref=conferenceCollection();await setDoc(doc(ref,recordId),header,{merge:true});const chunkSize=350;for(let i=0;i<allRows.length;i+=chunkSize){const chunk=allRows.slice(i,i+chunkSize);const chunkId=`${recordId}__${String(i/chunkSize).padStart(5,"0")}`;await setDoc(doc(ref,chunkId),{tipo:type,status:"DETALHES",recordId,parte:Math.floor(i/chunkSize),dados:chunk,criadoEm:now},{merge:true});}
+    // Ao substituir uma conferência por outra com MENOS linhas, os blocos antigos excedentes
+    // continuavam gravados com as linhas da versão anterior. Agora eles são esvaziados.
+    {const blocosAntigos=Math.ceil((Number(existingConference?.totalRegistros)||0)/chunkSize), blocosNovos=Math.ceil(allRows.length/chunkSize);
+     for(let k=blocosNovos;k<blocosAntigos;k++){await setDoc(doc(ref,`${recordId}__${String(k).padStart(5,"0")}`),{tipo:type,status:"DESCARTADO",recordId,parte:k,dados:[],descartadoEm:now});}}if(statusEl)statusEl.innerHTML='<span style="color:green">✓ Conferência salva no Firebase.</span>';
     await saveFaturamentoLancamento({id:recordId,sourceConferenceId:recordId,status:"ATIVO",tipo:type,dataPedidos:meta.orderDate,dataPedidosFim:meta.orderDateEnd,arquivo:meta.fileName||"",observacao:meta.note||"",registros:Number(resumoFaturamento.registros)||0,vendaBruta:Number(resumoFaturamento.vendaBruta)||0,vendasCanceladasDevolvidas:Number(resumoFaturamento.vendasCanceladasDevolvidas)||0,taxaShopee:Number(resumoFaturamento.taxaShopee)||0,resultadoLiquidoShopee:novoResultado,criadoEm:existingConference?.criadoEm||now,atualizadoEm:now,criadoPor:existingConference?.criadoPor||currentUser?.email||"",atualizadoPor:currentUser?.email||""});
     const futureEntryResult=isDaily?await upsertConferenceFutureEntry(type,meta,novoResultado,recordId):null;
     await renderConferenceHistory();renderFaturamento();
+    if(futureEntryResult?.skipped==="recebida" && Math.abs((futureEntryResult.previous||0)-novoResultado)>0.009){
+      alert(`Conferência salva. A entrada de dinheiro desta data já está marcada como RECEBIDA em ${formatDateBR(futureEntryResult.dataRecebimento)} e foi mantida como está (${brl(futureEntryResult.previous)}).\n\nO novo Resultado Líquido é ${brl(novoResultado)}. Se o valor recebido estiver diferente, ajuste a entrada manualmente em Entradas de Dinheiro.`);
+    }else if(futureEntryResult?.skipped==="excluida"){
+      toast("Conferência salva. A entrada automática desta data foi excluída anteriormente e não foi recriada.");
+    }
     if(existingConference&&resultadoMudou){const diff=novoResultado-previousResult;const sinal=diff>=0?"aumentou":"reduziu";toast(`Conferência de ${formatDateBR(meta.orderDate)} atualizada. Resultado líquido ${sinal} ${brl(Math.abs(diff))}.${futureEntryResult?.updated?" Entrada futura atualizada.":""}`);}
     else if(existingConference){toast(`A conferência de ${formatDateBR(meta.orderDate)} já estava cadastrada e o Resultado Líquido não mudou.`);}
     else if(futureEntryResult?.created){toast(`Conferência salva. Entrada futura de ${brl(novoResultado)} criada para ${formatDateBR(futureEntryResult.dataPrevista)}.`);}
@@ -8155,8 +8369,8 @@ async function renderConferenceHistory(){
   try{
     let list=[];
     if(firebaseOnline){
-      const snap=await getDocs(conferenceCollection());
-      list=snap.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.status==="CABECALHO");
+      const snap=await getDocs(headersOnly(conferenceCollection()));
+      list=snap.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.status==="CABECALHO"&&!x.excluido);
     }else{ throw new Error("Firebase não conectado"); }
     list.sort((a,b)=>String(b.criadoEm||"").localeCompare(String(a.criadoEm||"")));
     body.innerHTML=list.length?list.map(x=>`<tr><td><b>${x.dataPedidosFim && x.dataPedidosFim!==x.dataPedidos ? `${formatDateBR(x.dataPedidos)} até ${formatDateBR(x.dataPedidosFim)}` : formatDateBR(x.dataPedidos)}</b></td><td>${x.tipo==="UPSELLER"?"UpSeller":(x.tipo==="DAILY"||x.tipo==="DIARIA"?"Conferência Diária":"Sobras / Shopee")}</td><td>${esc(x.arquivo||"—")}</td><td>${Number(x.totalRegistros||0).toLocaleString("pt-BR")}</td><td>${esc(x.observacao||"—")}</td><td>${formatDateTimeBR(x.criadoEm)}</td></tr>`).join(""):'<tr><td colspan="6" class="empty">Nenhuma conferência salva.</td></tr>';
