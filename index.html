@@ -2285,6 +2285,30 @@ async function seedIfEmpty(){
 
 function docId(v){return String(v).toUpperCase().replace(/[^A-Z0-9_-]+/g,"-").replace(/^-+|-+$/g,"").slice(0,120)||"SEM-ID"}
 
+// O ID do documento é derivado do nome (ex.: "CX.LISA" e "CX-LISA" geram o mesmo ID "CX-LISA").
+// Antes de CRIAR um registro novo, verificamos se o nome ou o ID já pertencem a outro registro,
+// para que um cadastro novo nunca sobrescreva um existente no Firebase.
+function findDocIdConflict(list,nameField,name){
+  const id=docId(name), key=String(name||"").trim().toUpperCase();
+  return (Array.isArray(list)?list:[]).find(x=>
+    String(x?.id||"")===id ||
+    String(x?.[nameField]||"").trim().toUpperCase()===key ||
+    docId(x?.[nameField]||"")===id
+  )||null;
+}
+function docIdConflictMessage(tipo,novoNome,existente,nameField){
+  const nomeExistente=String(existente?.[nameField]||existente?.id||"").trim();
+  if(nomeExistente.toUpperCase()===String(novoNome||"").trim().toUpperCase())
+    return `Esse ${tipo} já está cadastrado (${nomeExistente}).`;
+  return `Não foi possível cadastrar "${novoNome}": ele usaria o mesmo identificador do ${tipo} já existente "${nomeExistente}" e o substituiria. Use um nome diferente (pontos, espaços e acentos são tratados como "-").`;
+}
+// Confere direto no Firebase se o documento já existe (protege contra lista local desatualizada,
+// por exemplo quando outro usuário cadastrou no mesmo banco depois que a tela foi carregada).
+async function remoteDocData(ref,id){
+  const snap=await getDoc(doc(ref,id));
+  return snap.exists()?{id:snap.id,...snap.data()}:null;
+}
+
 const SETTINGS_GROUPS = {
   fixo: ["aluguelImovel","condominio","iptu","energiaMinimaFabrica","agua","internet","telefone","limpeza","segurancaAlarme","manutencaoPredial","contabilidadeFixa","sistemaErpFixo","sistemasSoftwares"],
   maquinas: ["depreciacaoLaser","custoTuboLaserMes","depreciacaoImpressoras3D","depreciacaoComputadores","depreciacaoFerramentas","depreciacaoBancadas","depreciacaoAcabamento","manutencaoPreventiva","reservaManutencaoCorretiva","exaustorVentilacao","compressor"],
@@ -2651,16 +2675,22 @@ async function applyBulkMasterCategory(){
   if(!window.confirm(`Alterar ${selected.length} SKU(s) Mestre para ${label}?`)) return;
 
   try{
-    if(firebaseOnline){
-      const batch=writeBatch(db);
-      selected.forEach(sku=>{
-        const master=masters.find(m=>String(m.skuMestre)===String(sku));
-        if(!master) return;
-        batch.set(doc(mastersRef,docId(master.skuMestre)),{categoria:category},{merge:true});
-        skus.filter(s=>String(s.skuMestre)===String(master.skuMestre)).forEach(s=>{
-          batch.set(doc(skusRef,docId(s.sku)),{categoria:category},{merge:true});
-        });
+    if(!firebaseOnline||!mastersRef||!skusRef) throw new Error("Firebase não conectado");
+    // Usa o ID REAL de cada documento (m.id / s.id). Gerar o ID pelo nome (docId) gravava
+    // num documento novo, "fantasma", quando o SKU Mestre já tinha sido renomeado.
+    const writes=[];
+    selected.forEach(sku=>{
+      const master=masters.find(m=>String(m.skuMestre)===String(sku));
+      if(!master) return;
+      writes.push({ref:mastersRef,id:master.id||docId(master.skuMestre)});
+      skus.filter(s=>String(s.skuMestre)===String(master.skuMestre)).forEach(s=>{
+        writes.push({ref:skusRef,id:s.id||docId(s.sku)});
       });
+    });
+    // O Firestore aceita no máximo 500 gravações por lote; dividimos em lotes de 450.
+    for(let i=0;i<writes.length;i+=450){
+      const batch=writeBatch(db);
+      writes.slice(i,i+450).forEach(w=>batch.set(doc(w.ref,w.id),{categoria:category},{merge:true}));
       await batch.commit();
     }
 
@@ -4045,6 +4075,9 @@ async function importMastersBulkCreate(file){
       if(!["MDF","PLASTICO","3D"].includes(categoria)){errors.push(`Linha ${line}: CATEGORIA inválida (${categoriaRaw||"vazia"}).`);return;}
       if(entradaVazia){errors.push(`Linha ${line}: ENTRADA COM LUCRO é obrigatória para calcular o PREÇO DE VENDA automaticamente.`);return;}
       if(masters.some(m=>String(m.skuMestre||"").trim().toUpperCase()===sku.toUpperCase()) || creates.some(m=>String(m.skuMestre||"").trim().toUpperCase()===sku.toUpperCase())){errors.push(`Linha ${line}: SKU MESTRE já cadastrado ou repetido na planilha (${sku}).`);return;}
+      // Proteção contra IDs iguais (ex.: "CAIXA.G" x "CAIXA-G"): o novo mestre sobrescreveria o existente.
+      {const conflito=findDocIdConflict(masters,"skuMestre",sku)||findDocIdConflict(creates,"skuMestre",sku);
+       if(conflito){errors.push(`Linha ${line}: ${docIdConflictMessage("SKU Mestre",sku,conflito,"skuMestre")}`);return;}}
 
       const precisaCompleto=entradaVazia&&precoVazio;
       let materiais=[];
@@ -4163,6 +4196,9 @@ async function importBulkSkus(file){
       seen.add(key);
       const existing=skus.find(x=>String(x.sku||"").trim().toUpperCase()===key);
       if(existing){errors.push(`Linha ${line}: SKU já cadastrado (${sku}).`);return;}
+      // Proteção contra IDs iguais (ex.: "CX.LISA" x "CX-LISA"), no banco e dentro da própria planilha.
+      {const conflito=findDocIdConflict(skus,"sku",sku)||findDocIdConflict(updates.map(u=>({id:u.id,sku:u.updated.sku})),"sku",sku);
+       if(conflito){errors.push(`Linha ${line}: ${docIdConflictMessage("SKU dependente",sku,conflito,"sku")}`);return;}}
 
       const names=resolved.map(m=>m.skuMestre);
       const bundle=combinedMasterForSku({skuMestres:names})||{};
@@ -4247,13 +4283,19 @@ document.getElementById("newSku").onclick=()=>{
     if(!sku){toast("Informe o SKU.");return;}
     if(!skuMestres.length){toast("Selecione pelo menos um SKU Mestre.");return;}
     if(skus.some(s=>String(s.sku).toUpperCase()===sku.toUpperCase())){toast("Esse SKU dependente já está cadastrado.");return;}
+    // Proteção: "CX.LISA" e "CX-LISA" geram o mesmo ID; o novo não pode sobrescrever o existente.
+    const conflitoSku=findDocIdConflict(skus,"sku",sku);
+    if(conflitoSku){alert(docIdConflictMessage("SKU dependente",sku,conflitoSku,"sku"));return;}
     const bundle=combinedMasterForSku({skuMestres});
     const pricing=getDependentPricingBase({skuMestres,unidades}),entradaPrecoTotal=pricing.entradaPrecoTotal,entradaMestres=pricing.entradaMestres;
     const p=calcPrices(entradaPrecoTotal,cor,aplicaRegraPretoSomenteMdf(skuMestres.map(n=>masters.find(m=>String(m.skuMestre)===String(n))))),primary=skuMestres[0],mestre=masters.find(m=>m.skuMestre===primary),mdfMateriais=bundle?.mdfMateriais||[],custoMdf=Number(bundle?.custoMdf)||0,custoEmbalagem=Number(bundle?.embalagemCost)||0;
     const ownerUid=String(currentUser?.uid||activeWorkspaceUid||"").trim();
     const updated={sku,skuMestre:primary,skuMestres,unidades,cor,ownerUid,criadoPorUid:ownerUid,criadoPorEmail:String(currentUser?.email||"").toLowerCase(),entradaUnitario:entradaMestres,entradaPrecoTotal,tempoProducaoMin:Number(bundle?.tempoProducaoMin)||0,...p,mdfMateriais,mdfId:mestre?.mdfId||"",mdfDescricao:mdfMateriais.map(x=>x.mdfDescricao).filter(Boolean).join(" + ")||mestre?.mdfDescricao||"",mdfEspessura:mestre?.mdfEspessura||"",mdfLarguraCm:mestre?.mdfLarguraCm||0,mdfComprimentoCm:mestre?.mdfComprimentoCm||0,mdfQuantidade:mestre?.mdfQuantidade||1,custoMdf,custoEmbalagem,embalagemId:bundle?.embalagemIds?.[0]||"",embalagemDescricao:bundle?.embalagemIds?.map(id=>getEmbalagemForMaster({embalagemId:id})?.descricao).filter(Boolean).join(" + ")||"",entradaTotal:p.entradaAjustada+custoMdf+custoEmbalagem};
     const id=docId(sku);
-    try{if(!firebaseOnline||!skusRef)throw new Error("Firebase não conectado");await setDoc(doc(skusRef,id),updated);skus.push({id,...updated});skus.sort((a,b)=>String(a.sku).localeCompare(String(b.sku)));renderAll();closeModal();toast(`Novo SKU dependente cadastrado com ${skuMestres.length} SKU Mestre(s).`);}catch(err){console.error(err);toast("Não foi possível cadastrar o SKU dependente.");}
+    try{if(!firebaseOnline||!skusRef)throw new Error("Firebase não conectado");
+      const conflitoRemotoSku=await remoteDocData(skusRef,id);
+      if(conflitoRemotoSku){alert(docIdConflictMessage("SKU dependente",sku,conflitoRemotoSku,"sku")+" Atualize a página para ver os dados mais recentes.");return;}
+      await setDoc(doc(skusRef,id),updated);skus.push({id,...updated});skus.sort((a,b)=>String(a.sku).localeCompare(String(b.sku)));renderAll();closeModal();toast(`Novo SKU dependente cadastrado com ${skuMestres.length} SKU Mestre(s).`);}catch(err){console.error(err);toast("Não foi possível cadastrar o SKU dependente.");}
   };
 };
 
@@ -4293,8 +4335,15 @@ function openNewMasterModal(prefill={}){
 
   document.getElementById("newMasterForm").onsubmit=async e=>{
     e.preventDefault();const f=new FormData(e.target), embalagem=getEmbalagemForMaster({embalagemId:String(f.get("embalagemId")||"").trim()}), entrada=num(f.get("entrada")), m={skuMestre:f.get("skuMestre").trim(),qtdSkus:num(f.get("qtdSkus")),entrada,modoTempoSeparado:f.get("modoTempoSeparado")==="on",tempoMaquinaMin:Math.max(0,Number(f.get("tempoMaquinaMin"))||0),tempoMontagemMin:Math.max(0,Number(f.get("tempoMontagemMin"))||0),tempoProducaoMin:(Math.max(0,Number(f.get("tempoMaquinaMin"))||0)+Math.max(0,Number(f.get("tempoMontagemMin"))||0)),categoria:String(f.get("categoria")||"MDF").toUpperCase(),precoVendaPlanilha:calculateMasterSalePrice(entrada),imageLinks:String(f.get("imageLinks")||"").split(/\r?\n/).map(x=>x.trim()).filter(Boolean),embalagemId:embalagem?.id||"",embalagemDescricao:embalagem?.descricao||"",embalagemTipo:embalagem?.tipoEmbalagem||"",embalagemTamanho:embalagem?.tamanhoEmbalagem||"",embalagemValor:Number(embalagem?.valor)||0,mdfMateriais:Array.isArray(p.mdfMateriais)?p.mdfMateriais:[],observacao:f.get("observacao")||""};
+    if(!m.skuMestre){toast("Informe o SKU Mestre.");return;}
     const id=docId(m.skuMestre);
-    try{if(!firebaseOnline||!mastersRef)throw new Error("Firebase não conectado");await setDoc(doc(mastersRef,id),m);masters.push({id,...m});masters.sort((a,b)=>a.skuMestre.localeCompare(b.skuMestre));
+    // Proteção: nunca sobrescrever um SKU Mestre existente (com o mesmo nome ou o mesmo ID).
+    const conflitoLocal=findDocIdConflict(masters,"skuMestre",m.skuMestre);
+    if(conflitoLocal){alert(docIdConflictMessage("SKU Mestre",m.skuMestre,conflitoLocal,"skuMestre"));return;}
+    try{if(!firebaseOnline||!mastersRef)throw new Error("Firebase não conectado");
+      const conflitoRemoto=await remoteDocData(mastersRef,id);
+      if(conflitoRemoto){alert(docIdConflictMessage("SKU Mestre",m.skuMestre,conflitoRemoto,"skuMestre")+" Atualize a página para ver os dados mais recentes.");return;}
+      await setDoc(doc(mastersRef,id),m);masters.push({id,...m});masters.sort((a,b)=>a.skuMestre.localeCompare(b.skuMestre));
 renderAll();closeModal();toast("Novo mestre criado.");}catch(err){toast("Erro ao criar mestre.");}
   };
 }
@@ -5717,6 +5766,9 @@ function exportSaudeFinanceiraPdf(){
   // Não reutilizamos variáveis internas de renderResumoFinanceiro(),
   // pois elas ficam fora do escopo desta função de exportação.
   const pdfTotal=rows=>rows.reduce((a,r)=>a+(Number(r?.valor)||0),0);
+  // Mesma normalização usada na tela Saúde Financeira (renderResumoFinanceiro).
+  // Antes ela não existia neste escopo e a exportação do PDF quebrava com "norm is not defined".
+  const norm=v=>String(v||'').trim().toLowerCase().replace(/\s+/g,' ');
   const pdfClassificar=r=>{
     const f=norm(r?.fornecedor);
     const d=norm(r?.descricao);
