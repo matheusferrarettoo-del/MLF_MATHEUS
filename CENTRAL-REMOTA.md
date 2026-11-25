@@ -37,3 +37,25 @@ Confirme o endereço publicado antes de configurá-lo na extensão.
 - O vínculo do Telegram é feito pelo pareamento individual da extensão. A Mini App não usa `initDataUnsafe` como autenticação; o nome exibido é apenas cosmético.
 - Não coloque token do bot, chaves de marketplace ou credenciais no GitHub.
 - A aplicação de preços/SKUs e suas coleções Firestore não são alteradas por este módulo.
+
+
+## Central 2.0 — diagnóstico operacional
+
+A interface `/central/` ganhou cartões de consulta para:
+- diagnóstico do computador principal;
+- estado conhecido da extensão;
+- robôs e automações;
+- conexões com Shopee, Mercado Livre, Duoke e Telegram.
+
+Esses cartões enviam perguntas ao mesmo assistente por `Telegram.WebApp.sendData()`. Eles **não são indicadores de telemetria em tempo real** e não devem ser interpretados como prova automática de que um serviço está online.
+
+### Próxima etapa para monitoramento automático real
+
+Para mostrar presença, última atividade, versão da extensão, erros recentes e estados de automações atualizados automaticamente, é necessário adicionar à extensão um emissor de heartbeat e um canal de leitura autenticado. Antes de ativar isso, devem ser definidos:
+1. autenticação e autorização do proprietário;
+2. armazenamento de estado com regras restritas (sem tokens de bot ou credenciais);
+3. intervalo e expiração do heartbeat;
+4. quais dados podem ser enviados, minimizando dados pessoais;
+5. política para comandos e ações remotas, mantendo as confirmações já existentes.
+
+A integração inicial não grava esses dados no Firestore nem altera as coleções do sistema de SKUs/MDF.
