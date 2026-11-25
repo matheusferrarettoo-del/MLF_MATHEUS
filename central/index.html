@@ -19,12 +19,30 @@ section{margin:12px 0 28px}.head{display:flex;align-items:end;justify-content:sp
 .channels{border:1px solid var(--line);border-radius:15px;overflow:hidden;background:#0d2030}.channel{width:100%;display:flex;align-items:center;gap:12px;padding:13px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--text);text-align:left;cursor:pointer}.channel:last-child{border:0}.mark{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-weight:900;font-size:12px}.sp{background:#f45a43}.ml{background:#f8cf43;color:#1a2832}.dk{background:#38b9a9}.channel span:nth-child(2){flex:1}.channel strong,.channel small{display:block}.channel strong{font-size:12px}.channel small{font-size:10px;color:var(--muted);margin-top:2px}.channel>b{font-size:24px;color:#7591a6;font-weight:400}
 .composer{border:1px solid #2a4a63;border-radius:15px;padding:12px;background:#10283c}.composer textarea{width:100%;resize:vertical;min-height:65px;background:transparent;border:0;outline:0;color:var(--text);font:inherit;font-size:13px}.composer textarea::placeholder{color:#7891a5}.foot{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding-top:10px}.foot span,.note{font-size:9px;color:#91a9bb}.foot button{border:0;border-radius:10px;padding:9px 12px;background:#2386d0;color:white;font-size:10px;font-weight:800;cursor:pointer}.note{line-height:1.5;margin:9px 2px 0}footer{border-top:1px solid var(--line);padding:18px 2px 26px;display:flex;justify-content:space-between;gap:10px;color:#71899c;font-size:9px}.footer-mark{font-weight:900;letter-spacing:.12em;color:#9bb4c8}
 @media(min-width:600px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.welcome{padding-top:48px}.tile{min-height:132px}}
+
+/* Central 2.0 — painel de operação */
+.monitor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.monitor{border:1px solid var(--line);border-radius:14px;padding:13px;background:linear-gradient(145deg,#112a3e,#0c1e2d);min-width:0}
+.monitor .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.monitor strong{font-size:12px}.monitor small{display:block;color:var(--muted);font-size:10px;margin-top:6px;line-height:1.45}
+.monitor .state{font-size:8px;letter-spacing:.1em;color:#f5c56b;border:1px solid #806a3e;border-radius:20px;padding:3px 7px;white-space:nowrap}
+.monitor button{margin-top:10px;border:0;background:#1b4b70;color:#d9efff;border-radius:8px;padding:7px 9px;font-size:9px;font-weight:800;cursor:pointer}
+.section-note{font-size:10px;color:#91a9bb;margin:8px 2px 0;line-height:1.5}
+@media(min-width:600px){.monitor-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 </style>
 </head>
 <body><div class="app">
 <header><div class="brand"><div class="logo">MLF</div><div><strong>MLF BRASIL</strong><small>CENTRAL REMOTA</small></div></div><div class="live"><i></i> TELEGRAM</div></header>
 <main>
 <div class="welcome"><div class="eyebrow">PAINEL DE OPERAÇÕES</div><h1>Olá<span id="firstName"></span>,<br>o que vamos resolver?</h1><p>Envie solicitações ao assistente que já funciona no computador principal. As respostas chegam nesta conversa do Telegram.</p><div class="status"><span class="pulse"></span><span id="statusText">Central pronta para enviar comandos</span><small id="today"></small></div></div>
+
+<section><div class="head"><div><div class="eyebrow">CENTRAL 2.0</div><h2>Diagnóstico operacional</h2></div><span class="live">CONSULTA SOB DEMANDA</span></div>
+<div class="monitor-grid">
+<div class="monitor"><div class="top"><strong>Computador principal</strong><span class="state">CONSULTAR</span></div><small>Peça ao assistente para verificar a disponibilidade do ambiente principal.</small><button data-command="Faça um diagnóstico do computador principal e informe o que você consegue verificar agora.">Consultar estado ↗</button></div>
+<div class="monitor"><div class="top"><strong>Extensão MLF</strong><span class="state">CONSULTAR</span></div><small>Verifique o estado conhecido da extensão e possíveis falhas.</small><button data-command="Verifique o estado da extensão MLF BRASIL, os módulos ativos e possíveis falhas conhecidas.">Verificar extensão ↗</button></div>
+<div class="monitor"><div class="top"><strong>Automações</strong><span class="state">CONSULTAR</span></div><small>Solicite um resumo dos robôs e processos em execução.</small><button data-command="Mostre o estado atual dos robôs e automações da MLF BRASIL, incluindo pausados e com erro.">Ver automações ↗</button></div>
+<div class="monitor"><div class="top"><strong>Conexões</strong><span class="state">CONSULTAR</span></div><small>Consulte integrações e serviços que o assistente consegue validar.</small><button data-command="Faça um diagnóstico das conexões Shopee, Mercado Livre, Duoke e Telegram. Informe o que está conectado e o que não consegue confirmar.">Diagnosticar ↗</button></div>
+</div><p class="section-note">Os cartões fazem consultas ao mesmo assistente pelo Telegram. Ainda não representam telemetria automática em tempo real: os indicadores só poderão mudar sozinhos após implantarmos o envio autenticado de sinais pela extensão.</p></section>
 <section><div class="head"><div><div class="eyebrow">VISÃO GERAL</div><h2>Acesso rápido</h2></div><button class="textbtn" data-command="painel">Atualizar painel ↗</button></div>
 <div class="grid">
 <button class="tile primary" data-command="painel"><span class="ico">▦</span><strong>Resumo do dia</strong><small>Vendas e indicadores</small><b>ABRIR PAINEL ↗</b></button>
