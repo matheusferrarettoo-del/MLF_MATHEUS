@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1c2d">
+<title>MLF BRASIL · Central Remota</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{box-sizing:border-box} :root{color-scheme:dark;--bg:#071522;--panel:#102438;--line:rgba(188,211,231,.13);--muted:#9bb0c2;--text:#f2f7fb;--blue:#45a5f5}
+body{margin:0;background:radial-gradient(ellipse at 90% 0%,#173b56 0,transparent 42%),var(--bg);color:var(--text);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+.app{max-width:760px;margin:auto;min-height:100vh;padding:0 18px env(safe-area-inset-bottom)}
+header{height:68px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}.logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(145deg,#2d9df1,#1461a1);display:grid;place-items:center;font-weight:900;font-size:12px}.brand strong{display:block;font-size:13px;letter-spacing:.09em}.brand small{display:block;color:var(--muted);font-size:9px;letter-spacing:.2em}
+.live{font-size:9px;letter-spacing:.1em;color:#a9c6d9}.live i,.pulse{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3ed6a0;margin-right:7px}
+.welcome{padding:34px 2px 26px}.eyebrow{font-size:9px;letter-spacing:.2em;color:#67b9f7;font-weight:800}.welcome h1{font-size:clamp(29px,7vw,43px);line-height:1.07;letter-spacing:-.045em;margin:10px 0 12px}.welcome p{color:#a9bdcd;max-width:520px;font-size:13px;margin:0}.status{display:flex;align-items:center;gap:9px;margin-top:22px;font-size:11px;color:#b7c9d7}.status small{margin-left:auto;color:#71899c}
+section{margin:12px 0 28px}.head{display:flex;align-items:end;justify-content:space-between;margin-bottom:12px}.head h2{font-size:19px;margin:3px 0 0}.textbtn{border:0;background:none;color:#6cbcf8;font-size:11px;font-weight:700;padding:6px 0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tile{min-height:118px;text-align:left;border:1px solid var(--line);border-radius:15px;padding:14px;background:linear-gradient(145deg,#132b40,#0e2031);color:var(--text);display:flex;flex-direction:column;align-items:flex-start;gap:4px;cursor:pointer}.tile:active,.channel:active{transform:scale(.985)}.primary{background:linear-gradient(145deg,#155b91,#123653);border-color:#398bca}.ico{font-size:19px;color:#78c5ff;margin-bottom:4px}.tile strong{font-size:13px}.tile small{font-size:10px;color:#a7bdce}.tile b{font-size:8px;letter-spacing:.13em;color:#b8e1ff;margin-top:auto;padding-top:8px}
+.channels{border:1px solid var(--line);border-radius:15px;overflow:hidden;background:#0d2030}.channel{width:100%;display:flex;align-items:center;gap:12px;padding:13px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--text);text-align:left;cursor:pointer}.channel:last-child{border:0}.mark{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-weight:900;font-size:12px}.sp{background:#f45a43}.ml{background:#f8cf43;color:#1a2832}.dk{background:#38b9a9}.channel span:nth-child(2){flex:1}.channel strong,.channel small{display:block}.channel strong{font-size:12px}.channel small{font-size:10px;color:var(--muted);margin-top:2px}.channel>b{font-size:24px;color:#7591a6;font-weight:400}
+.composer{border:1px solid #2a4a63;border-radius:15px;padding:12px;background:#10283c}.composer textarea{width:100%;resize:vertical;min-height:65px;background:transparent;border:0;outline:0;color:var(--text);font:inherit;font-size:13px}.composer textarea::placeholder{color:#7891a5}.foot{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding-top:10px}.foot span,.note{font-size:9px;color:#91a9bb}.foot button{border:0;border-radius:10px;padding:9px 12px;background:#2386d0;color:white;font-size:10px;font-weight:800;cursor:pointer}.note{line-height:1.5;margin:9px 2px 0}footer{border-top:1px solid var(--line);padding:18px 2px 26px;display:flex;justify-content:space-between;gap:10px;color:#71899c;font-size:9px}.footer-mark{font-weight:900;letter-spacing:.12em;color:#9bb4c8}
+@media(min-width:600px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.welcome{padding-top:48px}.tile{min-height:132px}}
+</style>
+</head>
+<body><div class="app">
+<header><div class="brand"><div class="logo">MLF</div><div><strong>MLF BRASIL</strong><small>CENTRAL REMOTA</small></div></div><div class="live"><i></i> TELEGRAM</div></header>
+<main>
+<div class="welcome"><div class="eyebrow">PAINEL DE OPERAÇÕES</div><h1>Olá<span id="firstName"></span>,<br>o que vamos resolver?</h1><p>Envie solicitações ao assistente que já funciona no computador principal. As respostas chegam nesta conversa do Telegram.</p><div class="status"><span class="pulse"></span><span id="statusText">Central pronta para enviar comandos</span><small id="today"></small></div></div>
+<section><div class="head"><div><div class="eyebrow">VISÃO GERAL</div><h2>Acesso rápido</h2></div><button class="textbtn" data-command="painel">Atualizar painel ↗</button></div>
+<div class="grid">
+<button class="tile primary" data-command="painel"><span class="ico">▦</span><strong>Resumo do dia</strong><small>Vendas e indicadores</small><b>ABRIR PAINEL ↗</b></button>
+<button class="tile" data-command="o que fazer agora"><span class="ico">✓</span><strong>O que fazer</strong><small>Pendências prioritárias</small></button>
+<button class="tile" data-command="rotina"><span class="ico">◷</span><strong>Rotinas</strong><small>Agenda e execução</small></button>
+<button class="tile" data-command="robos"><span class="ico">⌘</span><strong>Robôs</strong><small>Estado das automações</small></button>
+<button class="tile" data-command="resultados"><span class="ico">↗</span><strong>Resultados</strong><small>Comparativo de vendas</small></button>
+<button class="tile" data-command="casos todos"><span class="ico">▤</span><strong>Casos Duoke</strong><small>Atendimentos pendentes</small></button>
+</div></section>
+<section><div class="head"><div><div class="eyebrow">MARKETPLACES</div><h2>Operação por canal</h2></div></div><div class="channels">
+<button class="channel" data-command="Como está a operação da Shopee?"><span class="mark sp">S</span><span><strong>Shopee</strong><small>Vendas, anúncios e automações</small></span><b>›</b></button>
+<button class="channel" data-command="Como está a operação do Mercado Livre?"><span class="mark ml">ML</span><span><strong>Mercado Livre</strong><small>Vendas, perguntas e anúncios</small></span><b>›</b></button>
+<button class="channel" data-command="Como está o atendimento Duoke?"><span class="mark dk">D</span><span><strong>Atendimento Duoke</strong><small>Casos e acompanhamento</small></span><b>›</b></button>
+</div></section>
+<section><div class="head"><div><div class="eyebrow">COMANDO DIRETO</div><h2>Fale com o assistente</h2></div></div><form id="commandForm" class="composer"><textarea id="command" rows="2" maxlength="1000" placeholder="Ex.: verifique os anúncios com problemas..."></textarea><div class="foot"><span>Mesmo assistente do computador</span><button type="submit">Enviar comando ➤</button></div></form><p class="note">Alterações em anúncios, preços, campanhas e outras ações sensíveis continuam passando pelas confirmações já existentes no assistente.</p></section>
+</main><footer><div class="footer-mark">MLF BRASIL</div><span>Central remota · integração Telegram</span></footer>
+</div>
+<script>
+(function(){
+ const tg=window.Telegram&&window.Telegram.WebApp,$=id=>document.getElementById(id);
+ const send=command=>{
+  const value=String(command||'').trim();
+  if(!tg||typeof tg.sendData!=='function'){alert('Abra esta página pelo botão Central MLF no Telegram.');return;}
+  if(!value||value.length>1000)return;
+  $('statusText').textContent='Enviando solicitação…';
+  tg.sendData(JSON.stringify({v:1,command:value}));
+ };
+ if(tg){tg.ready();tg.expand();try{tg.setHeaderColor('#0b1c2d');tg.setBackgroundColor('#071522');}catch(e){}const u=tg.initDataUnsafe&&tg.initDataUnsafe.user;if(u&&u.first_name)$('firstName').textContent=' '+u.first_name;if(tg.MainButton)tg.MainButton.hide();}
+ $('today').textContent=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+ document.querySelectorAll('[data-command]').forEach(el=>el.addEventListener('click',()=>send(el.dataset.command)));
+ $('commandForm').addEventListener('submit',e=>{e.preventDefault();const v=$('command').value.trim();if(v)send(v);});
+})();
+</script></body></html>
