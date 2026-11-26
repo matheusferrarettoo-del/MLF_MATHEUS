@@ -29,13 +29,23 @@ section{margin:12px 0 28px}.head{display:flex;align-items:end;justify-content:sp
 .monitor button{margin-top:10px;border:0;background:#1b4b70;color:#d9efff;border-radius:8px;padding:7px 9px;font-size:9px;font-weight:800;cursor:pointer}
 .section-note{font-size:10px;color:#91a9bb;margin:8px 2px 0;line-height:1.5}
 @media(min-width:600px){.monitor-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+/* Central 3.0 — Para resolver (casos do Duoke e devoluções), dados de cada usuário no próprio link */
+.todo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.todo{border:1px solid var(--line);border-radius:15px;padding:14px;background:linear-gradient(145deg,#1a3247,#10243a);color:var(--text);text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:3px}.todo .n{font-size:30px;font-weight:900;letter-spacing:-.04em;line-height:1}.todo small{color:#a7bdce;font-size:10px}.todo strong{font-size:13px}.todo.hot{border-color:#e7a33e;background:linear-gradient(145deg,#4a3317,#2a2014)}.todo.zero{opacity:.65}.upd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 2px 0;font-size:10px;color:#8ea6b8}.upd button{border:1px solid var(--line);background:#0e2234;color:#9fd2ff;border-radius:9px;padding:6px 10px;font-size:10px;font-weight:700}.view{display:none}.view.on{display:block}.back{border:0;background:none;color:#6cbcf8;font-size:12px;font-weight:700;padding:14px 0 6px}.list{display:grid;gap:9px}.item{border:1px solid var(--line);border-radius:14px;padding:12px;background:#0f2335;text-align:left;color:var(--text);width:100%;cursor:pointer}.item .t{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:800}.item .s{font-size:11px;color:#a7bdce;margin-top:3px}.item .m{font-size:11px;color:#cfe0ec;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.tag{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.06em;border-radius:6px;padding:2px 6px;margin-right:4px;background:#1e3a52;color:#9fd2ff}.tag.w{background:#4a3317;color:#ffd08a}.tag.r{background:#4a1f1f;color:#ffaaaa}.tag.g{background:#173d2f;color:#8ff0c3}.card{border:1px solid var(--line);border-radius:14px;padding:13px;background:#0f2335;margin-bottom:10px}.card h3{margin:0 0 6px;font-size:11px;letter-spacing:.12em;color:#67b9f7}.card p{margin:3px 0;font-size:12px;color:#d7e5ef}.big{font-size:20px;font-weight:900;letter-spacing:-.03em}.bub{font-size:12px;border-radius:12px;padding:8px 10px;margin:6px 0;max-width:92%}.bub.c{background:#1b3348}.bub.l{background:#16402f;margin-left:auto}.bub.a{background:#2a2f45;margin-left:auto}.bub small{display:block;font-size:9px;color:#8ea6b8;margin-bottom:2px}.acts{display:grid;gap:8px;margin:12px 0 24px}.btn{border:0;border-radius:11px;padding:12px;font-size:13px;font-weight:800;color:#fff;background:#2386d0;text-align:center}.btn.s{background:#1e3a52}.btn.ok{background:#1f9d6b}.btn.w{background:#b7791f}.btn.r{background:#b33a3a}.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}textarea.f,input.f{width:100%;background:#0b1c2b;border:1px solid #2a4a63;border-radius:11px;color:var(--text);font:inherit;font-size:13px;padding:10px}textarea.f{min-height:76px;resize:vertical}.hint2{font-size:10px;color:#8ea6b8;margin:4px 2px 8px}.empty{font-size:12px;color:#9bb0c2;text-align:center;padding:26px 10px;border:1px dashed var(--line);border-radius:14px}
 </style>
 </head>
 <body><div class="app">
 <header><div class="brand"><div class="logo">MLF</div><div><strong>MLF BRASIL</strong><small>CENTRAL REMOTA</small></div></div><div class="live"><i></i> TELEGRAM</div></header>
-<main>
+<main id="vHome" class="view on">
 <div class="welcome"><div class="eyebrow">PAINEL DE OPERAÇÕES</div><h1>Olá<span id="firstName"></span>,<br>o que vamos resolver?</h1><p>Envie solicitações ao assistente que já funciona no computador principal. As respostas chegam nesta conversa do Telegram.</p><div class="status"><span class="pulse"></span><span id="statusText">Central pronta para enviar comandos</span><small id="today"></small></div></div>
 
+<section><div class="head"><div><div class="eyebrow">PARA RESOLVER</div><h2>Esperando você</h2></div><span class="live">DADOS DA SUA EXTENSÃO</span></div>
+<div class="todo-grid">
+<button class="todo" id="tCasos" data-go="casos"><span class="n" id="nCasos">–</span><strong>Casos do atendimento</strong><small id="sCasos">Atendente Duoke</small></button>
+<button class="todo" id="tDev" data-go="dev"><span class="n" id="nDev">–</span><strong>Devoluções e reembolsos</strong><small id="sDev">Shopee</small></button>
+</div>
+<div class="upd"><span id="updTxt">Sem dados ainda.</span><button id="btnRefresh" type="button">↻ Atualizar dados</button></div>
+<p class="section-note">Os casos e as devoluções vêm da SUA extensão, pelo SEU robô do Telegram, dentro do link do botão (depois do "#", que não sai do celular). Nada disso fica no GitHub nem no Firebase, e cada pessoa só vê os dados da própria extensão.</p></section>
 <section><div class="head"><div><div class="eyebrow">CENTRAL 2.0</div><h2>Diagnóstico operacional</h2></div><span class="live">CONSULTA SOB DEMANDA</span></div>
 <div class="monitor-grid">
 <div class="monitor"><div class="top"><strong>Computador principal</strong><span class="state">CONSULTAR</span></div><small>Peça ao assistente para verificar a disponibilidade do ambiente principal.</small><button data-command="Faça um diagnóstico do computador principal e informe o que você consegue verificar agora.">Consultar estado ↗</button></div>
@@ -58,21 +68,9 @@ section{margin:12px 0 28px}.head{display:flex;align-items:end;justify-content:sp
 <button class="channel" data-command="Como está o atendimento Duoke?"><span class="mark dk">D</span><span><strong>Atendimento Duoke</strong><small>Casos e acompanhamento</small></span><b>›</b></button>
 </div></section>
 <section><div class="head"><div><div class="eyebrow">COMANDO DIRETO</div><h2>Fale com o assistente</h2></div></div><form id="commandForm" class="composer"><textarea id="command" rows="2" maxlength="1000" placeholder="Ex.: verifique os anúncios com problemas..."></textarea><div class="foot"><span>Mesmo assistente do computador</span><button type="submit">Enviar comando ➤</button></div></form><p class="note">Alterações em anúncios, preços, campanhas e outras ações sensíveis continuam passando pelas confirmações já existentes no assistente.</p></section>
-</main><footer><div class="footer-mark">MLF BRASIL</div><span>Central remota · integração Telegram</span></footer>
+</main>
+<main id="vList" class="view"><button class="back" data-back>‹ Voltar</button><div class="head"><div><div class="eyebrow" id="lEye"></div><h2 id="lTitle"></h2></div></div><div class="list" id="lBody"></div></main>
+<main id="vDet" class="view"><button class="back" data-back>‹ Voltar</button><div id="dBody"></div></main>
+<footer><div class="footer-mark">MLF BRASIL</div><span>Central remota · integração Telegram</span></footer>
 </div>
-<script>
-(function(){
- const tg=window.Telegram&&window.Telegram.WebApp,$=id=>document.getElementById(id);
- const send=command=>{
-  const value=String(command||'').trim();
-  if(!tg||typeof tg.sendData!=='function'){alert('Abra esta página pelo botão Central MLF no Telegram.');return;}
-  if(!value||value.length>1000)return;
-  $('statusText').textContent='Enviando solicitação…';
-  tg.sendData(JSON.stringify({v:1,command:value}));
- };
- if(tg){tg.ready();tg.expand();try{tg.setHeaderColor('#0b1c2d');tg.setBackgroundColor('#071522');}catch(e){}const u=tg.initDataUnsafe&&tg.initDataUnsafe.user;if(u&&u.first_name)$('firstName').textContent=' '+u.first_name;if(tg.MainButton)tg.MainButton.hide();}
- $('today').textContent=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
- document.querySelectorAll('[data-command]').forEach(el=>el.addEventListener('click',()=>send(el.dataset.command)));
- $('commandForm').addEventListener('submit',e=>{e.preventDefault();const v=$('command').value.trim();if(v)send(v);});
-})();
-</script></body></html>
+<script src="app.js?v=5820"></script></body></html>

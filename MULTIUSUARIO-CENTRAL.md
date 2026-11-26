@@ -42,6 +42,14 @@ Cada instalação usa seu próprio token de bot. Isso evita que várias extensõ
 - Confirmações de ações sensíveis permanecem obrigatórias e pertencem à sessão/usuário que iniciou a ação.
 - Revogação deve invalidar vínculo Telegram e instalação sem apagar os dados de SKU.
 
+## Central 3.0 — dados individuais no link (implementado, extensão 5.82.0+)
+Antes de existir o backend do vínculo (Fases 1–3), a Central já mostra dados individuais sem servidor:
+- Cada extensão monta o resumo dos próprios casos do Duoke e devoluções e coloca no link do botão da Mini App, depois do `#`, enviado pelo **bot individual** só para o **chat pareado** (e convidados autorizados).
+- O fragmento `#` não chega ao GitHub Pages; não há Firestore, Functions nem tokens envolvidos.
+- As ações voltam por `sendData` para a extensão dona do bot, que valida o chat autorizado antes de executar. Confirmações sensíveis continuam: na própria Central (com o valor) e, para contestação, no chat.
+- Isolamento: A não recebe o botão de B (bots e chats diferentes), e o conteúdo não fica em nenhum armazenamento compartilhado.
+- Isso não substitui a validação de `initData` prevista na Fase 2 para quando houver leitura de dados por servidor.
+
 ## Observação sobre a arquitetura atual
 A Central atual usa uma página estática e envia comandos por Telegram.WebApp.sendData(). A extensão atual recebe web_app_data e chama o assist() local. O código atual valida o chat privado pareado, mas esse pareamento por chat não comprova, por si só, a identidade Firebase. Portanto, a experiência atual funciona para uma instalação pareada, mas ainda não implementa o isolamento completo UID ↔ Telegram ↔ extensão.
 
