@@ -1,4 +1,5 @@
-// MLF BRASIL · Central Remota (Mini App do Telegram) — Central 3.5: + lista do Médico do sistema (extensão 5.87.0+).
+// MLF BRASIL · Central Remota (Mini App do Telegram) — Central 3.6: casos do Mercado Livre (perguntas, pós-venda, reclamações) e respostas automáticas do ML (extensão 5.88.0+).
+// Central 3.5: + lista do Médico do sistema (extensão 5.87.0+).
 // Central 3.4: + 10 últimos pedidos pendentes da Shopee e as etiquetas (extensão 5.86.0+).
 // Central 3.3: + Meus anúncios lidos do Firebase do usuário (extensão 5.85.0+).
 // Central 3.2 (extensão 5.84.0+): + aprovações (atendimento, preço,
@@ -89,7 +90,7 @@
     const novo = !!(D && D.v >= 2);
     const setT = (id, n, sub, hot) => { $('n' + id).textContent = D ? (novo || id === 'Atd' ? n : '–') : '–'; $('s' + id).textContent = D && !novo && id !== 'Atd' ? 'Atualize a extensão (5.84.0+)' : sub; $('t' + id).classList.toggle('hot', !!(novo && hot && n)); $('t' + id).classList.toggle('zero', !!(D && novo && !n)); };
     const a = (D && D.atd) || {}, pr = (D && D.pre) || {}, cm = (D && D.cam) || {}, pl = (D && D.pl) || {};
-    const nAtd = casos.length + (a.duv || []).length + (a.revN || 0) + (a.mlN || 0);
+    const nAtd = casos.length + (a.duv || []).length + (a.revN || 0) + (a.mlN || 0); // mlN = 0 desde a 5.88.0 (os casos do ML já estão em casos)
     setT('Atd', nAtd, D ? [casos.length && casos.length + ' caso(s)', (a.duv || []).length && a.duv.length + ' dúvida(s)', a.revN && a.revN + ' avaliação(ões)', a.mlN && a.mlN + ' no ML'].filter(Boolean).join(' · ') || 'Nada esperando você' : 'Duoke, avaliações e Mercado Livre', true);
     const nPre = (pr.cmd || []).length + (pr.mlp ? pr.mlp.n : 0);
     setT('Pre', nPre, nPre ? [(pr.cmd || []).length && pr.cmd.length + ' comando(s)', pr.mlp && pr.mlp.n + ' no ML'].filter(Boolean).join(' · ') : 'Nada aguardando', true);
@@ -120,7 +121,9 @@
       const a = (D && D.atd) || {};
       $('lEye').textContent = '1 · ATENDIMENTO'; $('lTitle').textContent = 'Aguardando sua aprovação';
       let h = '';
-      if (casos.length) h += sec('CASOS DO ATENDENTE DUOKE') + casos.map((c, i) => it(`data-caso="${i}"`, c.cl, c.dt, `${c.hj ? '<span class="tag w">HOJE</span>' : ''}${c.ra ? '<span class="tag g">RASCUNHO PRONTO</span>' : ''}🏪 ${esc(c.lj)}`, '⚠️ ' + c.mo)).join('');
+      const mla = a.mla;
+      if (mla) h += `<div class="card"><h3>RESPOSTAS AUTOMÁTICAS DO MERCADO LIVRE</h3><p>${[['q', 'Perguntas'], ['p', 'Pós-venda'], ['c', 'Reclamações']].map(([k, n]) => `${mla[k] ? '✅' : '⏸'} ${n}`).join(' · ')}</p><p class="hint2">${mla.par ? '⛔ O Mercado Livre está parado (botão Parar ML).' : mla.at ? 'Última rodada ' + esc(quando(mla.at)) + (mla.env ? ' · ' + mla.env + ' resposta(s) enviada(s)' : '') : 'Ainda não rodou.'} Mesmo banco e mesmas regras do Atendente Duoke; o que a IA não souber ou depender de você aparece nos casos abaixo.</p>${mla.q && mla.p && mla.c ? '<button class="btn s" data-a="mloff" style="width:100%">⏸ Desligar as respostas automáticas do ML</button>' : '<button class="btn ok" data-a="mlon" style="width:100%">🤖 Ligar tudo: perguntas, pós-venda e reclamações</button>'}</div>`;
+      if (casos.length) h += sec('CASOS PARA VOCÊ (DUOKE E MERCADO LIVRE)') + casos.map((c, i) => it(`data-caso="${i}"`, c.cl, c.dt, `${tagMk(c)}${c.hj ? '<span class="tag w">HOJE</span>' : ''}${c.ra ? '<span class="tag g">RASCUNHO PRONTO</span>' : ''}🏪 ${esc(c.lj)}`, '⚠️ ' + c.mo)).join('');
       if ((a.duv || []).length) h += sec('DÚVIDAS DO ATENDENTE (ELE PRECISA DA SUA RESPOSTA)') + a.duv.map((x, i) => it(`data-duv="${i}"`, x.q, x.n > 1 ? x.n + ' conversas' : '', `${x.lj ? '🏪 ' + esc(x.lj) : ''}${x.pr ? ' · ' + esc(x.pr) : ''}`, x.ex ? '👤 "' + x.ex + '"' : '')).join('');
       if ((a.rev || []).length) h += sec(`RESPOSTAS DE AVALIAÇÕES · SHOPEE${a.revN > a.rev.length ? ` (${a.rev.length} de ${a.revN})` : ''}`) + a.rev.map((x, i) => it(`data-rev="${i}"`, x.p || 'Avaliação', '★'.repeat(x.e || 0), `${x.st === 'revisar' ? '<span class="tag w">REVISAR</span>' : '<span class="tag g">RESPOSTA PRONTA</span>'}${esc(x.lj)}`, x.c ? '👤 "' + x.c + '"' : '(sem comentário)')).join('');
       if ((a.ml || []).length) h += sec(`MERCADO LIVRE · O ROBÔ DEIXOU PARA VOCÊ${a.mlN > a.ml.length ? ` (${a.ml.length} de ${a.mlN})` : ''}`) + a.ml.map((x) => it('data-info="ml"', x.tp === 'q' ? 'Pergunta ' + x.id : 'Conversa ' + x.id, quando(x.at), '<span class="tag">RESPONDA NO MERCADO LIVRE</span>', x.r)).join('');
@@ -201,6 +204,9 @@
     mostra('vList');
   }
 
+  const MK = { pergunta: 'ML · PERGUNTA', posvenda: 'ML · PÓS-VENDA', reclamacao: 'ML · RECLAMAÇÃO', ml: 'MERCADO LIVRE' };
+  const tagMk = (c) => (c.mk ? `<span class="tag ${c.mk === 'reclamacao' ? 'r' : ''}">${MK[c.mk] || 'MERCADO LIVRE'}</span>` : '');
+  const destino = (c) => (c.mk ? 'no Mercado Livre' : 'pelo Duoke');
   // ---------- caso do Duoke ----------
   const QUEM = { c: '👤 Cliente', l: '🏪 Loja', a: '🤖 Automática' };
   function caso(c) {
@@ -209,11 +215,11 @@
     const conv = (c.cv || []).map((m) => `<div class="bub ${m[0]}"><small>${QUEM[m[0]] || ''}${m[1] ? ' · ' + esc(m[1]) : ''}</small>${esc(m[2])}</div>`).join('') || (c.um ? `<div class="bub c"><small>👤 Cliente</small>${esc(c.um)}</div>` : '<p>Sem mensagens.</p>');
     const at = c.at ? `<p>${c.at[0] ? '✉️ O Atendente respondeu (enviado):' : '✉️ O Atendente sugeriu, mas NÃO enviou:'}</p><div class="bub l">${esc(c.at[1])}</div>` : '<p>✉️ O Atendente ainda não respondeu este cliente.</p>';
     const rasc = c.ra ? `<div class="card" style="border-color:#1f9d6b"><h3>RASCUNHO PRONTO</h3><div class="bub l">${esc(c.ra)}</div>
-      <div class="acts" style="margin:10px 0 0"><button class="btn ok" data-a="enviar">✅ Enviar este rascunho ao cliente</button>
+      <div class="acts" style="margin:10px 0 0"><button class="btn ok" data-a="enviar">✅ Enviar este rascunho ao cliente ${destino(c)}</button>
       <textarea class="f" id="fAjuste" placeholder="O que mudar? Ex.: mais curta, sem prometer prazo"></textarea>
       <div class="row2"><button class="btn s" data-a="ajuste">✍️ Ajustar com a IA</button><button class="btn s" data-a="cancelar">✖️ Descartar</button></div></div></div>` : '';
     $('dBody').innerHTML = `
-      <div class="card"><h3>CASO · ATENDENTE DUOKE</h3><div class="big">${esc(c.cl)}</div><p>🏪 ${esc(c.lj)}${c.dt ? ' · ' + esc(c.dt) : ''}</p><p>⚠️ <b>Por que veio para você:</b> ${esc(c.mo)}</p></div>
+      <div class="card"><h3>${c.mk ? esc(MK[c.mk] || 'MERCADO LIVRE') : 'CASO · ATENDENTE DUOKE'}</h3><div class="big">${esc(c.cl)}</div><p>🏪 ${esc(c.lj)}${c.dt ? ' · ' + esc(c.dt) : ''}</p><p>⚠️ <b>Por que veio para você:</b> ${esc(c.mo)}</p></div>
       <div class="card"><h3>PEDIDO</h3>${prods}</div>
       <div class="card"><h3>CONVERSA</h3>${conv}</div>
       <div class="card"><h3>RESPOSTA DO ATENDENTE</h3>${at}</div>
@@ -232,9 +238,9 @@
     const c = atual.item, code = c.c;
     if (a === 'sug') return confirma(`Pedir uma sugestão de resposta para ${c.cl}? O rascunho chega no chat.`, () => sendRaw({ action: 'caso', op: 'sug', code }));
     if (a === 'como') { const t = ($('fComo').value || '').trim(); if (!t) return alert('Escreva como devo resolver.'); return sendRaw({ action: 'caso', op: 'como', code, texto: t }); }
-    if (a === 'texto') { const t = ($('fComo').value || '').trim(); if (!t) return alert('Escreva a mensagem para o cliente.'); if (t.length > 600) return alert(`A mensagem tem ${t.length} caracteres. O limite do chat é 600.`); return confirma(`Enviar EXATAMENTE este texto para ${c.cl} pelo Duoke?\n\n"${t.slice(0, 300)}${t.length > 300 ? '…' : ''}"`, () => sendRaw({ action: 'caso', op: 'texto', code, texto: t })); }
+    if (a === 'texto') { const t = ($('fComo').value || '').trim(); if (!t) return alert('Escreva a mensagem para o cliente.'); const lim = c.mk === 'pergunta' ? 2000 : c.mk ? 350 : 600; if (t.length > lim) return alert(`A mensagem tem ${t.length} caracteres. O limite é ${lim}.`); return confirma(`Enviar EXATAMENTE este texto para ${c.cl} ${destino(c)}?\n\n"${t.slice(0, 300)}${t.length > 300 ? '…' : ''}"`, () => sendRaw({ action: 'caso', op: 'texto', code, texto: t })); }
     if (a === 'ok') return confirma(`Marcar o caso de ${c.cl} como resolvido e tirar da lista?`, () => sendRaw({ action: 'caso', op: 'ok', code }));
-    if (a === 'enviar') return confirma(`Enviar o rascunho para ${c.cl} pelo Duoke?`, () => sendRaw({ action: 'caso', op: 'enviar', code }));
+    if (a === 'enviar') return confirma(`Enviar o rascunho para ${c.cl} ${destino(c)}?`, () => sendRaw({ action: 'caso', op: 'enviar', code }));
     if (a === 'ajuste') { const t = ($('fAjuste').value || '').trim(); if (!t) return alert('Escreva o que mudar.'); return sendRaw({ action: 'caso', op: 'ajuste', code, texto: t }); }
     if (a === 'cancelar') return confirma('Descartar o rascunho?', () => sendRaw({ action: 'caso', op: 'cancelar', code }));
   }
@@ -504,6 +510,7 @@
     if (el.dataset.est != null) { const [ci, ti] = el.dataset.est.split(':').map(Number); const c = D.pl.est[ci]; return tarefa(c, c.t[ti]); }
     if (el.dataset.spt != null) return tarefaSp(D.pl.sp[+el.dataset.spt]);
     if (el.dataset.info != null) return;
+    if (el.dataset.a === 'mlon' || el.dataset.a === 'mloff') { haptic(); return confirma(el.dataset.a === 'mlon' ? 'Ligar as respostas automáticas do Mercado Livre (perguntas, pós-venda e reclamações)? Ele responde sozinho com o banco e as regras do Duoke; nas reclamações nunca devolve dinheiro nem autoriza devolução sozinho.' : 'Desligar as respostas automáticas do Mercado Livre?', () => sendRaw({ action: 'x', op: el.dataset.a, key: '-', s: '' })); }
     if ((el.dataset.a === 'mdr' || el.dataset.a === 'mdv') && atual && atual.tipo === 'med') { haptic(); return el.dataset.a === 'mdr' ? confirma('Rodar o médico agora? Ele confere tudo e conserta o que der.', () => sendRaw({ action: 'x', op: 'mdr', key: '-', s: '' })) : sendRaw({ action: 'x', op: 'mdv', key: '-', s: '' }); }
     if (el.dataset.ped != null) return pedido(D.ped.l[+el.dataset.ped]);
     if (el.dataset.a === 'pedet' && atual && atual.tipo === 'ped') { haptic(); return sendRaw({ action: 'x', op: 'et', key: atual.item.sn, s: '' }); }
