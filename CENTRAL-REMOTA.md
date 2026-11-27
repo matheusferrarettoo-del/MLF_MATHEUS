@@ -83,6 +83,21 @@ A parte **Para resolver** agora tem, nesta ordem:
 
 Comandos grandes (com confirmação reforçada) continuam só no computador; a Central mostra, mas não executa. Tudo continua passando pelas mesmas regras e travas da extensão.
 
+## Central 3.3 — Meus anúncios pelo Firebase (extensão 5.85.0+)
+
+O cartão **Meus anúncios** lista as lojas da Shopee e do Mercado Livre e os anúncios de cada uma (busca por título, SKU ou ID; preço, estoque, vendas, variações; abrir o anúncio). Os dados vêm do Firebase do próprio usuário (`usuarios/{uid}/anunciosLojas` e `usuarios/{uid}/anunciosCache`), que a extensão atualiza: busca completa 1 vez por dia e só as alterações a cada 2 horas. A Central não chama a Shopee nem o Mercado Livre.
+
+Na primeira vez a pessoa entra com o e-mail e a senha do MLF Sistema. A senha não é guardada: só a chave de renovação do Firebase, no próprio celular. As regras do Firebase garantem que cada um só lê a própria cópia:
+
+```
+match /usuarios/{uid}/anunciosLojas/{doc} {
+  allow read, write: if request.auth != null && request.auth.uid == uid;
+}
+match /usuarios/{uid}/anunciosCache/{doc} {
+  allow read, write: if request.auth != null && request.auth.uid == uid;
+}
+```
+
 ### Como os dados chegam (sem servidor e sem misturar usuários)
 1. A extensão de cada usuário monta um resumo dos SEUS casos e devoluções, compacta (deflate) e coloca no link do botão **🖥️ Abrir Central MLF**, depois do `#` (`.../central/#d=z…`).
 2. O botão é mandado pelo robô do próprio usuário, só para o chat desse usuário (e dos convidados que ele autorizou).
