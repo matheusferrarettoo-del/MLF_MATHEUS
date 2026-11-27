@@ -70,6 +70,19 @@ A Central ganhou a parte **Para resolver**, com:
 - **Vídeos com erro** (Shopee, extensão 5.83.0+): anúncio, SKU, arquivo e o motivo (ex.: resolução 1080 × 1920 acima do máximo de 1280 × 1280), com explicação de como resolver. Ações: tentar de novo (volta para a fila) e ignorar.
 - **Cópias de hoje** (extensão 5.83.0+): cópias criadas hoje na Duplicação do Mercado Livre e no Duplicar Shopee, inclusive as que deram erro (com o motivo). Tocar abre o anúncio da cópia.
 
+## Central 3.2 — os 9 itens (extensão 5.84.0+)
+
+A parte **Para resolver** agora tem, nesta ordem:
+1. **Atendimento aguardando sua aprovação** — casos do Atendente Duoke, dúvidas do Atendente (você responde e fica salvo no banco dele), respostas de avaliações da Shopee (edita, aprova ou descarta) e perguntas/conversas do Mercado Livre que o robô deixou para você (só aviso: responda no ML).
+2. **Alterações de preço aguardando aprovação** — comandos do Gerente que mudam preço (aprovar e executar / cancelar) e os ajustes da análise diária de preços do Mercado Livre (aplicar todos, sempre preservando a Entrada).
+3. **Campanhas e anúncios aguardando aprovação** — comandos de desconto, impulso, duplicação e expansão; lotes da Pulverização (aprovar / recusar) e propostas de título e descrição da Shopee (aprovar / rejeitar).
+4. **Plano de ação do gerente** — tarefas do motor de estratégia de cada conta (executar / deixar de lado 7 dias) e as estratégias planejadas do Plano Estratégico da Shopee (aprovar / rejeitar).
+5. Devoluções e reembolsos · 6. Cópias criadas hoje · 7. Vídeos com erros (Shopee API Media).
+8. **Notificações importantes** — a mesma lista do "O que fazer agora" do painel (desconexões, perguntas, reclamações, casos, médico, violações, rotina), com as urgentes marcadas.
+9. **Resumo diário da operação** — vendas de hoje (ML e Shopee), 7 dias contra os 7 anteriores, atendimento, Shopee Ads, Bot Ads, rotina, médico e quanto está esperando você em cada item.
+
+Comandos grandes (com confirmação reforçada) continuam só no computador; a Central mostra, mas não executa. Tudo continua passando pelas mesmas regras e travas da extensão.
+
 ### Como os dados chegam (sem servidor e sem misturar usuários)
 1. A extensão de cada usuário monta um resumo dos SEUS casos e devoluções, compacta (deflate) e coloca no link do botão **🖥️ Abrir Central MLF**, depois do `#` (`.../central/#d=z…`).
 2. O botão é mandado pelo robô do próprio usuário, só para o chat desse usuário (e dos convidados que ele autorizou).
@@ -79,13 +92,13 @@ A Central ganhou a parte **Para resolver**, com:
 Assim, **cada usuário do MLF_MATHEUS tem a sua própria Central**: os dados de A nunca passam pelo robô, pelo chat, pelo GitHub ou pelo Firebase de B. Nada é gravado no Firestore e as coleções de SKUs/MDF não são tocadas.
 
 ### Para cada usuário
-- Extensão MLF BRASIL **5.82.1 ou mais nova** (já usa esta Central por padrão; o campo do endereço ficou opcional).
+- Extensão MLF BRASIL **5.84.0 ou mais nova** para os 9 itens (5.82.1+ já usa esta Central) (já usa esta Central por padrão; o campo do endereço ficou opcional).
 - No próprio robô do Telegram, mandar **/central** para receber o botão novo.
 - O botão se atualiza sozinho quando chegam os casos do fim do dia e as devoluções do dia, depois de cada ação feita na Central e ao tocar em **↻ Atualizar dados**.
 
 ### Limites
 - Cada ação fecha a Central (é assim que o Telegram entrega `sendData`); o resultado chega na conversa.
 - Até 30 casos e 20 devoluções; em dias muito cheios a extensão resume as conversas para o link caber no botão.
-- Extensões antigas continuam funcionando com a Central (comandos e cartões); a parte "Para resolver" fica "Sem dados" até atualizar a extensão.
+- Extensões antigas continuam funcionando com a Central (comandos e cartões); a parte "Para resolver" fica "Sem dados" (ou pede "Atualize a extensão (5.84.0+)" nos itens novos) até atualizar a extensão.
 
 Arquivos: `central/index.html` (página) e `central/app.js` (lógica). A mesma cópia vai dentro da extensão em `miniapp/`.
