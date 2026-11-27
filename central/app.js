@@ -208,8 +208,12 @@
   }
 
   const MK = { pergunta: 'ML · PERGUNTA', posvenda: 'ML · PÓS-VENDA', reclamacao: 'ML · RECLAMAÇÃO', ml: 'MERCADO LIVRE' };
-  const tagMk = (c) => (c.mk ? `<span class="tag ${c.mk === 'reclamacao' ? 'r' : ''}">${MK[c.mk] || 'MERCADO LIVRE'}</span>` : '');
-  const destino = (c) => (c.mk ? 'no Mercado Livre' : 'pelo Duoke');
+  // v3.7.1: caso do ML reconhecido também pelo motivo (dados de extensões antigas não traziam o canal)
+  const mkDe = (c) => c.mk || (/^Mercado Livre/i.test(String(c.mo || '')) ? 'ml' : '');
+  const tagMk = (c) => (mkDe(c) ? `<span class="tag ${mkDe(c) === 'reclamacao' ? 'r' : ''}">${MK[mkDe(c)] || 'MERCADO LIVRE'}</span>` : '');
+  const destino = (c) => (mkDe(c) ? 'no Mercado Livre' : 'pelo Duoke');
+  const verNum = (v) => String(v || '0').split('.').map(Number).reduce((t, x, i) => t + (x || 0) * [1e6, 1e3, 1][i], 0);
+  const extAntigaMl = () => !D || !D.ver || verNum(D.ver) < verNum('5.88.0');
   // ---------- caso do Duoke ----------
   const QUEM = { c: '👤 Cliente', l: '🏪 Loja', a: '🤖 Automática' };
   function caso(c) {
@@ -222,14 +226,14 @@
       <textarea class="f" id="fAjuste" placeholder="O que mudar? Ex.: mais curta, sem prometer prazo"></textarea>
       <div class="row2"><button class="btn s" data-a="ajuste">✍️ Ajustar com a IA</button><button class="btn s" data-a="cancelar">✖️ Descartar</button></div></div></div>` : '';
     $('dBody').innerHTML = `
-      <div class="card"><h3>${c.mk ? esc(MK[c.mk] || 'MERCADO LIVRE') : 'CASO · ATENDENTE DUOKE'}</h3><div class="big">${esc(c.cl)}</div><p>🏪 ${esc(c.lj)}${c.dt ? ' · ' + esc(c.dt) : ''}</p><p>⚠️ <b>Por que veio para você:</b> ${esc(c.mo)}</p></div>
+      <div class="card"><h3>${mkDe(c) ? esc(MK[mkDe(c)] || 'MERCADO LIVRE') : 'CASO · ATENDENTE DUOKE'}</h3>${mkDe(c) && extAntigaMl() ? '<p>⚠️ Atualize a extensão MLF BRASIL para a 5.90.1 ou mais nova e toque em "Atualizar dados": a versão que montou esta lista ainda manda a resposta pelo Duoke, não pelo Mercado Livre.</p>' : ''}<div class="big">${esc(c.cl)}</div><p>🏪 ${esc(c.lj)}${c.dt ? ' · ' + esc(c.dt) : ''}</p><p>⚠️ <b>Por que veio para você:</b> ${esc(c.mo)}</p></div>
       <div class="card"><h3>PEDIDO</h3>${prods}</div>
       <div class="card"><h3>CONVERSA</h3>${conv}</div>
       <div class="card"><h3>RESPOSTA DO ATENDENTE</h3>${at}</div>
       ${rasc}
       <div class="card"><h3>COMO RESOLVER?</h3>
         <textarea class="f" id="fComo" maxlength="1200" placeholder="Ex.: pede desculpa e diz que vamos reenviar a peça em até 5 dias úteis"></textarea>
-        <p class="hint2">"IA escreve" monta a mensagem com a sua orientação e manda o rascunho no chat para você conferir. "Enviar exatamente" manda o seu texto direto ao cliente (até 600 caracteres).</p>
+        <p class="hint2">"IA escreve" monta a mensagem com a sua orientação e manda o rascunho no chat para você conferir e enviar (o caso sai da lista depois do envio). "Enviar exatamente" manda o seu texto direto ao cliente ${mkDe(c) ? 'no Mercado Livre (sem links, telefone ou e-mail; até ' + (mkDe(c) === 'pergunta' ? '2.000' : '350') + ' caracteres)' : 'pelo Duoke (até 600 caracteres)'}.</p>
         <div class="acts" style="margin:6px 0 0">
           <div class="row2"><button class="btn" data-a="como">🤖 IA escreve com isso</button><button class="btn w" data-a="texto">📨 Enviar exatamente</button></div>
           <button class="btn s" data-a="sug">💡 Sugira uma resposta (sem orientação)</button>
@@ -240,8 +244,8 @@
   function acaoCaso(a) {
     const c = atual.item, code = c.c;
     if (a === 'sug') return confirma(`Pedir uma sugestão de resposta para ${c.cl}? O rascunho chega no chat.`, () => sendRaw({ action: 'caso', op: 'sug', code }));
-    if (a === 'como') { const t = ($('fComo').value || '').trim(); if (!t) return alert('Escreva como devo resolver.'); return sendRaw({ action: 'caso', op: 'como', code, texto: t }); }
-    if (a === 'texto') { const t = ($('fComo').value || '').trim(); if (!t) return alert('Escreva a mensagem para o cliente.'); const lim = c.mk === 'pergunta' ? 2000 : c.mk ? 350 : 600; if (t.length > lim) return alert(`A mensagem tem ${t.length} caracteres. O limite é ${lim}.`); return confirma(`Enviar EXATAMENTE este texto para ${c.cl} ${destino(c)}?\n\n"${t.slice(0, 300)}${t.length > 300 ? '…' : ''}"`, () => sendRaw({ action: 'caso', op: 'texto', code, texto: t })); }
+    if (a === 'como') { const t = ($('fComo').value || '').trim(); if (!t) return alert('Escreva como devo resolver.'); return confirma(`A IA vai escrever a mensagem com a sua orientação e mandar o RASCUNHO aqui no chat. Lá você toca em "${mkDe(c) ? 'Enviar no Mercado Livre' : 'Enviar ao cliente'}" e o caso sai da lista. Continuar?`, () => sendRaw({ action: 'caso', op: 'como', code, texto: t })); }
+    if (a === 'texto') { const t = ($('fComo').value || '').trim(); if (!t) return alert('Escreva a mensagem para o cliente.'); const mk = mkDe(c); const lim = mk === 'pergunta' ? 2000 : mk ? 350 : 600; if (t.length > lim) return alert(`A mensagem tem ${t.length} caracteres. O limite é ${lim}.`); if (mk && /https?:\/\/|www\./i.test(t)) return alert('O Mercado Livre não aceita links nas mensagens (a mensagem seria recusada). Tire o link: explique em poucas palavras ou diga que o vídeo está na página do anúncio.'); if (mk && extAntigaMl()) return alert('Atualize a extensão MLF BRASIL (5.90.1 ou mais nova) e toque em "Atualizar dados": a versão atual ainda mandaria pelo Duoke.'); return confirma(`Enviar EXATAMENTE este texto para ${c.cl} ${destino(c)}?\n\n"${t.slice(0, 300)}${t.length > 300 ? '…' : ''}"`, () => sendRaw({ action: 'caso', op: 'texto', code, texto: t })); }
     if (a === 'ok') return confirma(`Marcar o caso de ${c.cl} como resolvido e tirar da lista?`, () => sendRaw({ action: 'caso', op: 'ok', code }));
     if (a === 'enviar') return confirma(`Enviar o rascunho para ${c.cl} ${destino(c)}?`, () => sendRaw({ action: 'caso', op: 'enviar', code }));
     if (a === 'ajuste') { const t = ($('fAjuste').value || '').trim(); if (!t) return alert('Escreva o que mudar.'); return sendRaw({ action: 'caso', op: 'ajuste', code, texto: t }); }
