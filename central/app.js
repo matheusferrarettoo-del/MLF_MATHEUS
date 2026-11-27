@@ -1,4 +1,5 @@
-// MLF BRASIL · Central Remota (Mini App do Telegram) — Central 3.4: + 10 últimos pedidos pendentes da Shopee e as etiquetas (extensão 5.86.0+).
+// MLF BRASIL · Central Remota (Mini App do Telegram) — Central 3.5: + lista do Médico do sistema (extensão 5.87.0+).
+// Central 3.4: + 10 últimos pedidos pendentes da Shopee e as etiquetas (extensão 5.86.0+).
 // Central 3.3: + Meus anúncios lidos do Firebase do usuário (extensão 5.85.0+).
 // Central 3.2 (extensão 5.84.0+): + aprovações (atendimento, preço,
 // campanhas e anúncios), plano de ação do gerente, notificações importantes e resumo diário. Central 3.1: vídeos e cópias.
@@ -98,6 +99,10 @@
     setT('Pl', pend, pend ? `${pend} para aprovar · ${(pl.est || []).length} conta(s)` : (pl.est || []).length ? `${(pl.est || []).length} conta(s) · nada para aprovar` : 'Sem plano ainda', true);
     const nt = (D && D.nt) || [], urgN = nt.filter((t) => t.l <= 1).length;
     setT('Nt', nt.length, nt.length ? (urgN ? urgN + ' urgente(s) · ' : '') + nt.length + ' aviso(s)' : 'Nenhum aviso', urgN > 0);
+    const md = D && D.med, mdNovos = md ? md.l.filter((x) => x.at > (md.vistos || 0)).length : 0;
+    $('nMed').textContent = md ? (md.pr.length || mdNovos) : '–';
+    $('sMed').textContent = !D ? 'consertos e paradas' : !md ? 'Atualize a extensão (5.87.0+)' : md.pr.length ? `${md.pr.length} parada(s) agora${mdNovos ? ' · ' + mdNovos + ' aviso(s) novo(s)' : ''}` : mdNovos ? `${mdNovos} conserto(s)/aviso(s) novo(s)` : 'Tudo funcionando';
+    $('tMed').classList.toggle('hot', !!(md && md.pr.some((p) => p.n))); $('tMed').classList.toggle('zero', !!(md && !md.pr.length && !mdNovos));
     const pd = D && D.ped, pdl = (pd && pd.l) || [];
     $('nPed').textContent = D && D.v >= 2 && pd ? pdl.length : '–';
     $('sPed').textContent = !D ? 'Shopee · etiquetas para imprimir' : !pd ? (D.v >= 2 ? 'Atualize a extensão (5.86.0+)' : 'Atualize a extensão (5.86.0+)') : pd.erro ? '⚠️ ' + pd.erro.slice(0, 40) : pdl.length ? `${pdl.filter((x) => x.st === 'p' && !x.et).length} etiqueta(s) por imprimir · ${pd.total} pendente(s)` : 'Nenhum pedido pendente';
@@ -156,6 +161,17 @@
     }
     if (tipo === 'rs') return resumoDia();
     if (tipo === 'anc') return anuncios();
+    if (tipo === 'med') {
+      const md = D && D.med;
+      $('lEye').textContent = 'MÉDICO DO SISTEMA'; $('lTitle').textContent = 'Consertos e paradas';
+      if (!md) { $('lBody').innerHTML = velha(); return mostra('vList'); }
+      let h = `<div class="acts" style="margin:0 0 6px"><div class="row2"><button class="btn" data-a="mdr">🩺 Rodar o médico agora</button><button class="btn s" data-a="mdv">✔️ Marcar como vista</button></div></div>`;
+      h += sec(md.pr.length ? `PARADO AGORA (${md.pr.length})` : 'PARADO AGORA') + (md.pr.length ? md.pr.map((p) => it('data-info="md"', p.t, p.n ? 'ERRO' : 'AVISO', `<span class="tag ${p.n ? 'r' : 'w'}">${p.n ? 'PRECISA DE ATENÇÃO' : 'AVISO'}</span>${p.lj ? esc(p.lj) : ''}`, p.c ? '🔧 ' + p.c : '')).join('') : vazio('✅ Nada parado na última conferência' + (md.at ? ' (' + esc(quando(md.at)) + ')' : '') + '.'));
+      h += sec('CONSERTOS E AVISOS') + (md.l.length ? md.l.map((x) => it('data-info="md"', x.t, quando(x.at), `${x.at > (md.vistos || 0) ? '<span class="tag w">NOVO</span>' : ''}${x.k === 'p' ? '<span class="tag r">PAROU</span>' : x.ok ? '<span class="tag g">CONSERTADO</span>' : '<span class="tag r">NÃO CONSEGUIU</span>'}`, x.r ? '→ ' + x.r : '')).join('') : vazio('Nenhum conserto registrado ainda.'));
+      $('lBody').innerHTML = h + '<p class="hint2">O médico confere o sistema sozinho e conserta o que dá. Os avisos dele ficam só aqui (não chegam mais como mensagem).</p>';
+      atual = { tipo: 'med', item: md };
+      return mostra('vList');
+    }
     if (tipo === 'ped') {
       const pd = D && D.ped, l = (pd && pd.l) || [];
       $('lEye').textContent = 'SHOPEE · A ENVIAR'; $('lTitle').textContent = 'Últimos pedidos pendentes';
@@ -488,6 +504,7 @@
     if (el.dataset.est != null) { const [ci, ti] = el.dataset.est.split(':').map(Number); const c = D.pl.est[ci]; return tarefa(c, c.t[ti]); }
     if (el.dataset.spt != null) return tarefaSp(D.pl.sp[+el.dataset.spt]);
     if (el.dataset.info != null) return;
+    if ((el.dataset.a === 'mdr' || el.dataset.a === 'mdv') && atual && atual.tipo === 'med') { haptic(); return el.dataset.a === 'mdr' ? confirma('Rodar o médico agora? Ele confere tudo e conserta o que der.', () => sendRaw({ action: 'x', op: 'mdr', key: '-', s: '' })) : sendRaw({ action: 'x', op: 'mdv', key: '-', s: '' }); }
     if (el.dataset.ped != null) return pedido(D.ped.l[+el.dataset.ped]);
     if (el.dataset.a === 'pedet' && atual && atual.tipo === 'ped') { haptic(); return sendRaw({ action: 'x', op: 'et', key: atual.item.sn, s: '' }); }
     if (el.dataset.a === 'pedtodas' && atual && atual.tipo === 'pedl') { haptic(); const sns = atual.item.map((x) => x.sn); return confirma(`Receber num PDF as etiquetas de ${sns.length} pedido(s) processado(s)?`, () => sendRaw({ action: 'x', op: 'et', key: sns.join(','), s: '' })); }

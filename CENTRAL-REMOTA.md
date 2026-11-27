@@ -83,6 +83,10 @@ A parte **Para resolver** agora tem, nesta ordem:
 
 Comandos grandes (com confirmação reforçada) continuam só no computador; a Central mostra, mas não executa. Tudo continua passando pelas mesmas regras e travas da extensão.
 
+## Central 3.5 — Médico do sistema (extensão 5.87.0+)
+
+O cartão **Médico do sistema** mostra o que está parado agora e o histórico de consertos automáticos e avisos, com os botões "Rodar o médico agora" e "Marcar como vista". Esses avisos deixaram de chegar como mensagem no Telegram.
+
 ## Central 3.4 — Últimos pedidos pendentes e etiquetas (extensão 5.86.0+)
 
 O cartão **Últimos pedidos pendentes** mostra os 10 pedidos mais recentes da Shopee esperando envio, com SKUs, valor, prazo e se a etiqueta já foi impressa. A etiqueta de um pedido (ou de todos os processados da lista) chega em PDF no chat do robô, cortada em 10 × 15 cm e com o SKU no rodapé. A lista vem no link do botão, como os outros itens; o PDF é mandado pelo robô do próprio usuário.
