@@ -1,4 +1,5 @@
-// MLF BRASIL · Central Remota (Mini App do Telegram) — Central 3.2 (extensão 5.84.0+): + aprovações (atendimento, preço,
+// MLF BRASIL · Central Remota (Mini App do Telegram) — Central 3.3: + Meus anúncios lidos do Firebase do usuário (extensão 5.85.0+).
+// Central 3.2 (extensão 5.84.0+): + aprovações (atendimento, preço,
 // campanhas e anúncios), plano de ação do gerente, notificações importantes e resumo diário. Central 3.1: vídeos e cópias.
 // Mesma página para todos os usuários do MLF_MATHEUS; o conteúdo é de cada um: chega pelo próprio robô do usuário.
 // Os dados (casos do Atendente Duoke e devoluções da Shopee) chegam no próprio link, depois do "#",
@@ -149,6 +150,7 @@
       return mostra('vList');
     }
     if (tipo === 'rs') return resumoDia();
+    if (tipo === 'anc') return anuncios();
     if (tipo === 'casos') {
       $('lEye').textContent = 'ATENDENTE DUOKE'; $('lTitle').textContent = 'Casos para você';
       $('lBody').innerHTML = casos.length ? casos.map((c, i) => `<button class="item" data-caso="${i}"><div class="t"><span>${esc(c.cl)}</span><span style="font-weight:600;font-size:10px;color:#8ea6b8">${esc(c.dt)}</span></div><div class="s">${c.hj ? '<span class="tag w">HOJE</span>' : ''}${c.ra ? '<span class="tag g">RASCUNHO PRONTO</span>' : ''}🏪 ${esc(c.lj)}</div><div class="m">⚠️ ${esc(c.mo)}</div></button>`).join('') : '<div class="empty">✅ Nenhum caso do Atendente Duoke esperando você.</div>';
@@ -328,6 +330,97 @@
     mostra('vDet');
   }
 
+  // ---------- Meus anúncios (Firebase do usuário, MLF Sistema) ----------
+  // A extensão guarda a cópia diária dos anúncios em usuarios/{uid}/anunciosLojas e anunciosCache. A Central lê
+  // dali com o login do próprio usuário no MLF Sistema (as regras do Firebase só deixam cada um ler o seu).
+  const FB = { key: 'AIzaSyBv78q2fiMNGzoYilq4OqaHGYxZvP0iBHU', proj: 'mlf-decor' };
+  const FBK = 'mlfCentralFbLogin';
+  const AN = { tok: null, exp: 0, lojas: null, loja: null, itens: null, q: '' };
+  const lsG = () => { try { return JSON.parse(localStorage.getItem(FBK) || 'null'); } catch (e) { return null; } };
+  const lsS = (v) => { try { if (v) localStorage.setItem(FBK, JSON.stringify(v)); else localStorage.removeItem(FBK); } catch (e) { /* sem armazenamento */ } };
+  async function post(url, body, form) {
+    const r = await fetch(url, form ? { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body).toString() } : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { const c = (j.error && j.error.message) || 'HTTP ' + r.status; const e = new Error(/INVALID_LOGIN|INVALID_PASSWORD|EMAIL_NOT_FOUND|INVALID_EMAIL/.test(c) ? 'E-mail ou senha incorretos.' : /TOO_MANY/.test(c) ? 'Muitas tentativas. Espere alguns minutos.' : /TOKEN_EXPIRED|INVALID_REFRESH|USER_NOT_FOUND/.test(c) ? 'O login venceu. Entre de novo.' : c); e.auth = r.status === 400; throw e; }
+    return j;
+  }
+  async function fbLogin(email, senha) {
+    const j = await post('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' + FB.key, { email, password: senha, returnSecureToken: true });
+    lsS({ r: j.refreshToken, uid: j.localId, email: j.email });
+    AN.tok = j.idToken; AN.exp = Date.now() + (+j.expiresIn || 3600) * 1000 - 60e3;
+  }
+  async function fbTok() {
+    if (AN.tok && Date.now() < AN.exp) return AN.tok;
+    const s = lsG(); if (!s || !s.r) return null;
+    try {
+      const j = await post('https://securetoken.googleapis.com/v1/token?key=' + FB.key, { grant_type: 'refresh_token', refresh_token: s.r }, true);
+      if (j.refresh_token && j.refresh_token !== s.r) lsS({ ...s, r: j.refresh_token });
+      AN.tok = j.id_token; AN.exp = Date.now() + (+j.expires_in || 3600) * 1000 - 60e3;
+      return AN.tok;
+    } catch (e) { if (e.auth) lsS(null); throw e; }
+  }
+  const dec = (v) => (!v ? null : 'stringValue' in v ? v.stringValue : 'integerValue' in v ? +v.integerValue : 'doubleValue' in v ? +v.doubleValue : 'booleanValue' in v ? v.booleanValue : 'arrayValue' in v ? ((v.arrayValue.values) || []).map(dec) : 'mapValue' in v ? campos(v.mapValue.fields || {}) : null);
+  const campos = (f) => Object.fromEntries(Object.entries(f || {}).map(([k, v]) => [k, dec(v)]));
+  async function fbGet(path, q) {
+    const tok = await fbTok(); if (!tok) throw new Error('login');
+    const r = await fetch(`https://firestore.googleapis.com/v1/projects/${FB.proj}/databases/(default)/documents/${path}${q ? '?' + q : ''}`, { headers: { Authorization: 'Bearer ' + tok } });
+    if (r.status === 404) return null;
+    if (r.status === 403) throw new Error('O Firebase não deixou ler os anúncios (regras do Firebase: usuarios/{uid}/anunciosLojas e anunciosCache).');
+    if (!r.ok) throw new Error('Firebase: HTTP ' + r.status);
+    return r.json();
+  }
+  function telaLogin(msg, email) {
+    $('lEye').textContent = 'MLF SISTEMA'; $('lTitle').textContent = 'Meus anúncios';
+    $('lBody').innerHTML = `<div class="card"><h3>ENTRAR NO MLF SISTEMA</h3><p>Os anúncios vêm do SEU Firebase (o mesmo login do MLF Sistema). A senha não fica guardada: só a chave de acesso, neste celular.</p>
+      <input class="f" id="fbEmail" type="email" autocomplete="username" placeholder="e-mail" value="${esc(email || (lsG() || {}).email || '')}" style="margin:6px 0">
+      <input class="f" id="fbSenha" type="password" autocomplete="current-password" placeholder="senha" style="margin:0 0 8px">
+      ${msg ? `<p>⚠️ ${esc(msg)}</p>` : ''}<button class="btn" data-fb="entrar" style="width:100%">Entrar</button></div>`;
+    mostra('vList');
+  }
+  async function anuncios() {
+    $('lEye').textContent = 'SHOPEE E MERCADO LIVRE'; $('lTitle').textContent = 'Meus anúncios';
+    const s = lsG();
+    if (!s || !s.r) return telaLogin();
+    $('lBody').innerHTML = vazio('Lendo as suas lojas no Firebase…'); mostra('vList');
+    try {
+      const j = await fbGet(`usuarios/${s.uid}/anunciosLojas`, 'pageSize=50');
+      AN.lojas = ((j && j.documents) || []).map((d) => campos(d.fields)).filter((x) => x.loja && x.conta).sort((a, b) => (a.loja + a.nome).localeCompare(b.loja + b.nome));
+    } catch (e) { return e.message === 'login' ? telaLogin() : ($('lBody').innerHTML = vazio('⚠️ ' + esc(e.message))); }
+    $('lBody').innerHTML = (AN.lojas.length ? AN.lojas.map((l, i) => it(`data-anl="${i}"`, `${l.loja === 'ml' ? '🟡 Mercado Livre' : '🟠 Shopee'} · ${l.nome || l.conta}`, l.total + ' anúncio(s)', `busca completa ${esc(quando(l.full))} · conferido ${esc(quando(l.check))}`, '')).join('')
+      : vazio('Ainda não há anúncios no seu Firebase. A extensão MLF BRASIL 5.85.0+ com o MLF Sistema conectado envia a cópia sozinha (1 vez por dia, e as alterações a cada 2 horas).'))
+      + `<p class="hint2">Conectado como ${esc(s.email || '')} · <button class="textbtn" data-fb="sair">sair</button></p>`;
+  }
+  async function abrirLoja(l) {
+    AN.loja = l; AN.itens = null; AN.q = '';
+    $('lEye').textContent = l.loja === 'ml' ? 'MERCADO LIVRE' : 'SHOPEE'; $('lTitle').textContent = l.nome || l.conta;
+    $('lBody').innerHTML = vazio('Carregando ' + l.total + ' anúncio(s)…'); mostra('vList');
+    try {
+      const s = lsG(), lk = l.loja + '_' + String(l.conta).replace(/[^A-Za-z0-9_-]/g, '');
+      const ps = await Promise.all([...Array(+l.partes || 1).keys()].map((i) => fbGet(`usuarios/${s.uid}/anunciosCache/${lk}_${i}`)));
+      AN.itens = ps.flatMap((d) => { try { return d ? JSON.parse(campos(d.fields).j || '[]') : []; } catch (e) { return []; } }).map((x) => (l.loja === 'ml'
+        ? { id: x.id, t: x.title, sku: x.sku || '', p: x.price, e: x.available_quantity, v: x.sold_quantity, img: x.secure_thumbnail, st: x.status === 'active' ? 'ATIVO' : 'PAUSADO', link: x.permalink, vr: (x.variations || []).map((y) => [y.nm, y.seller_custom_field, y.price, y.available_quantity]) }
+        : { id: x.id, t: x.name, sku: x.parentSku || '', p: x.priceMin, e: x.stock, v: x.sold, img: x.img, st: x.status === 'NORMAL' ? 'ATIVO' : 'PAUSADO', link: `https://shopee.com.br/product/${l.conta}/${x.id}`, vr: (x.models || []).map((m) => [m.name, m.sku, m.price, m.stock]), vid: x.video }))
+        .sort((a, b) => (b.v || 0) - (a.v || 0));
+    } catch (e) { $('lBody').innerHTML = vazio('⚠️ ' + esc(e.message)); return; }
+    listaItens();
+  }
+  function listaItens() {
+    const q = AN.q.trim().toLowerCase();
+    const l = AN.itens.filter((x) => !q || String(x.t).toLowerCase().includes(q) || String(x.id).toLowerCase().includes(q) || String(x.sku).toLowerCase().includes(q) || x.vr.some((v) => String(v[1] || '').toLowerCase().includes(q)));
+    const mostra2 = l.slice(0, 150);
+    $('lBody').innerHTML = `<input class="f" id="anQ" type="search" placeholder="Buscar por título, SKU ou ID" value="${esc(AN.q)}"><p class="hint2">${l.length} de ${AN.itens.length} anúncio(s) · cópia de ${esc(quando(AN.loja.check || AN.loja.full))}</p>`
+      + mostra2.map((x, i) => it(`data-ani="${AN.itens.indexOf(x)}"`, x.t, money(x.p), `${x.st === 'ATIVO' ? '' : '<span class="tag w">PAUSADO</span>'}${x.e ? '' : '<span class="tag r">SEM ESTOQUE</span>'}${x.vid === false ? '<span class="tag w">SEM VÍDEO</span>' : ''}${esc(x.sku)}${x.sku ? ' · ' : ''}estoque ${x.e} · ${x.v || 0} venda(s)`, '')).join('')
+      + (l.length > mostra2.length ? `<p class="hint2">Mostrando 150 de ${l.length}. Use a busca.</p>` : '');
+    const inp = $('anQ'); inp.addEventListener('input', () => { AN.q = inp.value; const pos = inp.selectionStart; listaItens(); const n = $('anQ'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* ok */ } });
+  }
+  function anuncio(x) {
+    atual = { tipo: 'anc', item: x };
+    $('dBody').innerHTML = `<div class="card"><h3>${AN.loja.loja === 'ml' ? 'MERCADO LIVRE' : 'SHOPEE'} · ${esc(AN.loja.nome || AN.loja.conta)}</h3>${x.img ? `<img src="${esc(x.img)}" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:10px;float:right;margin-left:8px">` : ''}<div class="big" style="font-size:16px">${esc(x.t)}</div><p>🆔 ${esc(x.id)}${x.sku ? ' · SKU ' + esc(x.sku) : ''}</p><p>💲 ${money(x.p)} · 📦 estoque ${x.e} · 🛒 ${x.v || 0} venda(s) · ${esc(x.st)}</p>${x.vid === false ? '<p>🎞️ sem vídeo</p>' : ''}</div>
+      ${x.vr.length ? `<div class="card"><h3>VARIAÇÕES (${x.vr.length})</h3>${x.vr.slice(0, 60).map((v) => `<div class="kv"><span>${esc(v[0] || '—')}<br><small style="color:#8ea6b8">${esc(v[1] || '')}</small></span><b>${money(v[2])} · ${v[3]} un.</b></div>`).join('')}</div>` : ''}
+      <div class="acts"><button class="btn" data-a="abrir">↗ Abrir o anúncio</button></div>`;
+    mostra('vDet');
+  }
+
   // ---------- vídeo com erro ----------
   function video(v) {
     atual = { tipo: 'vid', item: v };
@@ -368,6 +461,11 @@
     if (el.dataset.est != null) { const [ci, ti] = el.dataset.est.split(':').map(Number); const c = D.pl.est[ci]; return tarefa(c, c.t[ti]); }
     if (el.dataset.spt != null) return tarefaSp(D.pl.sp[+el.dataset.spt]);
     if (el.dataset.info != null) return;
+    if (el.dataset.fb === 'entrar') { const em = ($('fbEmail').value || '').trim(), se = $('fbSenha').value || ''; if (!em || !se) return alert('Informe o e-mail e a senha do MLF Sistema.'); el.disabled = true; el.textContent = 'Entrando…'; return fbLogin(em, se).then(anuncios, (er) => telaLogin(er.message, em)); }
+    if (el.dataset.fb === 'sair') return confirma('Sair do MLF Sistema neste celular?', () => { lsS(null); AN.tok = null; telaLogin(); });
+    if (el.dataset.anl != null) return abrirLoja(AN.lojas[+el.dataset.anl]);
+    if (el.dataset.ani != null) return anuncio(AN.itens[+el.dataset.ani]);
+    if (el.dataset.a === 'abrir' && atual && atual.tipo === 'anc') { const u = atual.item.link; return tg && typeof tg.openLink === 'function' ? tg.openLink(u) : window.open(u, '_blank'); }
     if (el.dataset.a && atual) { haptic(); return atual.tipo === 'caso' ? acaoCaso(el.dataset.a) : atual.tipo === 'vid' ? acaoVid(el.dataset.a) : atual.tipo === 'dev' ? acaoDev(el.dataset.a) : acaoX(el.dataset.a); }
     if (el.id === 'btnRefresh') return sendRaw({ action: 'refresh' });
   });
