@@ -1,4 +1,5 @@
-// MLF BRASIL · Central Remota (Mini App do Telegram) — Central 3.6: casos do Mercado Livre (perguntas, pós-venda, reclamações) e respostas automáticas do ML (extensão 5.88.0+).
+// MLF BRASIL · Central Remota (Mini App do Telegram) — Central 3.7: + modo data forte do Shopee Ads (extensão 5.89.0+).
+// Central 3.6: casos do Mercado Livre (perguntas, pós-venda, reclamações) e respostas automáticas do ML (extensão 5.88.0+).
 // Central 3.5: + lista do Médico do sistema (extensão 5.87.0+).
 // Central 3.4: + 10 últimos pedidos pendentes da Shopee e as etiquetas (extensão 5.86.0+).
 // Central 3.3: + Meus anúncios lidos do Firebase do usuário (extensão 5.85.0+).
@@ -94,8 +95,8 @@
     setT('Atd', nAtd, D ? [casos.length && casos.length + ' caso(s)', (a.duv || []).length && a.duv.length + ' dúvida(s)', a.revN && a.revN + ' avaliação(ões)', a.mlN && a.mlN + ' no ML'].filter(Boolean).join(' · ') || 'Nada esperando você' : 'Duoke, avaliações e Mercado Livre', true);
     const nPre = (pr.cmd || []).length + (pr.mlp ? pr.mlp.n : 0);
     setT('Pre', nPre, nPre ? [(pr.cmd || []).length && pr.cmd.length + ' comando(s)', pr.mlp && pr.mlp.n + ' no ML'].filter(Boolean).join(' · ') : 'Nada aguardando', true);
-    const nCam = (cm.cmd || []).length + (cm.lot || []).length + (cm.titN || 0);
-    setT('Cam', nCam, nCam ? [(cm.cmd || []).length && cm.cmd.length + ' comando(s)', (cm.lot || []).length && cm.lot.length + ' lote(s)', cm.titN && cm.titN + ' título(s)'].filter(Boolean).join(' · ') : 'Nada aguardando', true);
+    const nCam = (cm.cmd || []).length + (cm.lot || []).length + (cm.titN || 0) + (cm.df && cm.df.st === 'p' ? 1 : 0);
+    setT('Cam', nCam, nCam ? [(cm.cmd || []).length && cm.cmd.length + ' comando(s)', (cm.lot || []).length && cm.lot.length + ' lote(s)', cm.titN && cm.titN + ' título(s)', cm.df && (cm.df.st === 'a' ? '📣 data forte ligado' : '📣 data forte p/ aprovar')].filter(Boolean).join(' · ') : 'Nada aguardando', true);
     const pend = pendPlano();
     setT('Pl', pend, pend ? `${pend} para aprovar · ${(pl.est || []).length} conta(s)` : (pl.est || []).length ? `${(pl.est || []).length} conta(s) · nada para aprovar` : 'Sem plano ainda', true);
     const nt = (D && D.nt) || [], urgN = nt.filter((t) => t.l <= 1).length;
@@ -137,6 +138,8 @@
       if ((o.cmd || []).length) h += sec('COMANDOS DO GERENTE') + o.cmd.map((x, i) => it(`data-cmd="${tipo}:${i}"`, '"' + x.tx + '"', quando(x.at), `${x.rf ? '<span class="tag w">SÓ NO COMPUTADOR</span>' : ''}${x.it ? x.it + ' anúncio(s)' : ''}${x.ob ? ' · ' + esc(x.ob) : ''}`, x.d)).join('');
       if (tipo === 'pre' && o.mlp) h += sec('MERCADO LIVRE · ANÁLISE DIÁRIA DE PREÇOS') + it('data-mlp="1"', `${o.mlp.n} ajuste(s) recomendados`, quando(o.mlp.at), o.mlp.ok ? '<span class="tag g">PRESERVA A ENTRADA</span>' : '<span class="tag r">CATÁLOGO DESATUALIZADO</span>', o.mlp.it.slice(0, 3).map((x) => `${x.t}: ${money(x.de)} → ${money(x.para)}`).join(' · '));
       if (tipo === 'cam') {
+        const df = o.df;
+        if (df) h = sec(df.st === 'a' ? '📣 MODO DATA FORTE · LIGADO' : '📣 MODO DATA FORTE · ESPERANDO SUA APROVAÇÃO') + it('data-df="1"', `Shopee Ads +${df.pct}% em ${df.n} campanha(s)`, df.st === 'a' ? 'LIGADO' : '', `<span class="tag ${df.st === 'a' ? 'g' : 'w'}">${df.st === 'a' ? 'ATÉ ' + esc(quando(df.fim)) : 'APROVAR'}</span>até ${money(df.ex)} a mais por dia`, df.m.slice(0, 3).map((x) => x[0]).join(' · ')) + h;
         if ((o.lot || []).length) h += sec('PULVERIZAÇÃO · LOTES DE ANÚNCIOS NOVOS') + o.lot.map((x, i) => it(`data-lot="${i}"`, `${x.n} anúncio(s) novo(s)`, x.j != null ? x.j + 'h' : '', `<span class="tag ${x.lj === 'ml' ? '' : 'g'}">${x.lj === 'ml' ? 'MERCADO LIVRE' : 'SHOPEE'}</span>`, (x.it || []).slice(0, 3).join(' · '))).join('');
         if ((o.tit || []).length) h += sec(`TÍTULOS E DESCRIÇÕES · SHOPEE${o.titN > o.tit.length ? ` (${o.tit.length} de ${o.titN})` : ''}`) + o.tit.map((x, i) => it(`data-tit="${i}"`, x.de || 'Anúncio', quando(x.at), `${x.ok ? '' : '<span class="tag w">REVISAR NO COMPUTADOR</span>'}${x.para ? 'título novo' : ''}${x.para && x.ds ? ' + ' : ''}${x.ds ? 'descrição nova' : ''}${x.lj ? ' · ' + esc(x.lj) : ''}`, x.para ? '→ ' + x.para : '')).join('');
       }
@@ -368,6 +371,16 @@
     mostra('vDet');
   }
 
+  // ---------- modo data forte ----------
+  function dataForte(df) {
+    atual = { tipo: 'df', item: df };
+    $('dBody').innerHTML = `<div class="card"><h3>MODO DATA FORTE · SHOPEE ADS</h3><div class="big">+${df.pct}% de orçamento</div><p>${df.n} campanha(s) que dão retorno · até <b>${money(df.ex)}</b> a mais por dia (teto ${money(df.teto)})</p><p>⏰ ${df.st === 'a' ? 'Ligado até' : 'Vai até'} ${esc(quando(df.fim))}; depois volta tudo ao normal e chega o resultado.</p></div>
+      <div class="card"><h3>CAMPANHAS</h3>${df.m.map((x) => `<div class="kv"><span>${esc(x[0])}<br><small style="color:#8ea6b8">ROAS ${String(x[1]).replace('.', ',')}${x[4] ? ' · meta ROAS → ' + String(x[4]).replace('.', ',') : ''}${x[5] ? ' · a Shopee não aceitou' : ''}</small></span><b>${money(x[2])} → ${money(x[3])}</b></div>`).join('')}${df.n > df.m.length ? `<p class="hint2">… e mais ${df.n - df.m.length}.</p>` : ''}</div>
+      <div class="card"><h3>E MAIS</h3><p>• ${df.fr} campanha(s) fracas ficam como estão.</p><p>• Bot Ads a cada 30 min durante o modo.</p>${df.top ? `<p>• Impulso nos ${df.top} mais vendidos.</p>` : ''}${df.roas ? '<p>⚠️ Muda a meta de ROAS (a Shopee tira a Proteção ROAS quando a meta muda 2 vezes).</p>' : ''}</div>
+      <div class="acts">${df.st === 'a' ? '<button class="btn w" data-a="dfe">⏹ Encerrar agora e voltar ao normal</button>' : '<button class="btn ok" data-a="dfa">📣 Aprovar e ligar</button><button class="btn s" data-a="dfc">✖️ Cancelar</button>'}</div>`;
+    mostra('vDet');
+  }
+
   // ---------- pedido pendente ----------
   function pedido(x) {
     atual = { tipo: 'ped', item: x };
@@ -510,6 +523,8 @@
     if (el.dataset.est != null) { const [ci, ti] = el.dataset.est.split(':').map(Number); const c = D.pl.est[ci]; return tarefa(c, c.t[ti]); }
     if (el.dataset.spt != null) return tarefaSp(D.pl.sp[+el.dataset.spt]);
     if (el.dataset.info != null) return;
+    if (el.dataset.df != null) return dataForte(D.cam.df);
+    if (['dfa', 'dfc', 'dfe'].includes(el.dataset.a) && atual && atual.tipo === 'df') { haptic(); const x = atual.item; const msg = { dfa: `Ligar o modo data forte? Orçamento +${x.pct}% em ${x.n} campanha(s), até ${money(x.ex)} a mais por dia, até ${quando(x.fim)}.`, dfc: 'Cancelar o plano de data forte?', dfe: 'Encerrar o modo data forte agora e voltar os orçamentos ao normal?' }[el.dataset.a]; return confirma(msg, () => sendRaw({ action: 'x', op: el.dataset.a, key: x.id, s: '' })); }
     if (el.dataset.a === 'mlon' || el.dataset.a === 'mloff') { haptic(); return confirma(el.dataset.a === 'mlon' ? 'Ligar as respostas automáticas do Mercado Livre (perguntas, pós-venda e reclamações)? Ele responde sozinho com o banco e as regras do Duoke; nas reclamações nunca devolve dinheiro nem autoriza devolução sozinho.' : 'Desligar as respostas automáticas do Mercado Livre?', () => sendRaw({ action: 'x', op: el.dataset.a, key: '-', s: '' })); }
     if ((el.dataset.a === 'mdr' || el.dataset.a === 'mdv') && atual && atual.tipo === 'med') { haptic(); return el.dataset.a === 'mdr' ? confirma('Rodar o médico agora? Ele confere tudo e conserta o que der.', () => sendRaw({ action: 'x', op: 'mdr', key: '-', s: '' })) : sendRaw({ action: 'x', op: 'mdv', key: '-', s: '' }); }
     if (el.dataset.ped != null) return pedido(D.ped.l[+el.dataset.ped]);
