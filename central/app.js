@@ -1,4 +1,5 @@
-// MLF BRASIL · Central Remota (Mini App do Telegram) — Central 3.3: + Meus anúncios lidos do Firebase do usuário (extensão 5.85.0+).
+// MLF BRASIL · Central Remota (Mini App do Telegram) — Central 3.4: + 10 últimos pedidos pendentes da Shopee e as etiquetas (extensão 5.86.0+).
+// Central 3.3: + Meus anúncios lidos do Firebase do usuário (extensão 5.85.0+).
 // Central 3.2 (extensão 5.84.0+): + aprovações (atendimento, preço,
 // campanhas e anúncios), plano de ação do gerente, notificações importantes e resumo diário. Central 3.1: vídeos e cópias.
 // Mesma página para todos os usuários do MLF_MATHEUS; o conteúdo é de cada um: chega pelo próprio robô do usuário.
@@ -97,6 +98,10 @@
     setT('Pl', pend, pend ? `${pend} para aprovar · ${(pl.est || []).length} conta(s)` : (pl.est || []).length ? `${(pl.est || []).length} conta(s) · nada para aprovar` : 'Sem plano ainda', true);
     const nt = (D && D.nt) || [], urgN = nt.filter((t) => t.l <= 1).length;
     setT('Nt', nt.length, nt.length ? (urgN ? urgN + ' urgente(s) · ' : '') + nt.length + ' aviso(s)' : 'Nenhum aviso', urgN > 0);
+    const pd = D && D.ped, pdl = (pd && pd.l) || [];
+    $('nPed').textContent = D && D.v >= 2 && pd ? pdl.length : '–';
+    $('sPed').textContent = !D ? 'Shopee · etiquetas para imprimir' : !pd ? (D.v >= 2 ? 'Atualize a extensão (5.86.0+)' : 'Atualize a extensão (5.86.0+)') : pd.erro ? '⚠️ ' + pd.erro.slice(0, 40) : pdl.length ? `${pdl.filter((x) => x.st === 'p' && !x.et).length} etiqueta(s) por imprimir · ${pd.total} pendente(s)` : 'Nenhum pedido pendente';
+    $('tPed').classList.toggle('hot', pdl.some((x) => x.st === 'p' && !x.et)); $('tPed').classList.toggle('zero', !!(pd && !pdl.length));
     const rs = D && D.rs;
     $('sRs').textContent = !D ? 'vendas, Ads e rotina' : !novo ? 'Atualize a extensão (5.84.0+)' : rs ? [rs.ml ? 'ML ' + rs.ml.v + ' venda(s)' : '', rs.sp ? 'Shopee ' + rs.sp.o + ' pedido(s)' : ''].filter(Boolean).join(' · ') || 'toque para ver' : 'sem leitura agora';
     $('updTxt').textContent = D ? `Atualizado às ${new Date(D.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} de ${new Date(D.at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}${D.cut ? ' · lista resumida' : ''}` : 'Sem dados: toque em Atualizar dados.';
@@ -151,6 +156,17 @@
     }
     if (tipo === 'rs') return resumoDia();
     if (tipo === 'anc') return anuncios();
+    if (tipo === 'ped') {
+      const pd = D && D.ped, l = (pd && pd.l) || [];
+      $('lEye').textContent = 'SHOPEE · A ENVIAR'; $('lTitle').textContent = 'Últimos pedidos pendentes';
+      const proc = l.filter((x) => x.st === 'p');
+      $('lBody').innerHTML = !pd ? velha() : pd.erro && !l.length ? vazio('⚠️ ' + esc(pd.erro)) : !l.length ? vazio('✅ Nenhum pedido pendente na Shopee.')
+        : (proc.length ? `<div class="acts" style="margin:0 0 6px"><button class="btn" data-a="pedtodas">🏷 Receber as ${proc.length} etiqueta(s) processada(s) num PDF</button></div>` : '')
+          + l.map((x, i) => it(`data-ped="${i}"`, x.sn, quando(x.at), `${x.st === 'p' ? (x.et ? '<span class="tag g">ETIQUETA IMPRESSA</span>' : '<span class="tag w">ETIQUETA POR IMPRIMIR</span>') : '<span class="tag">ORGANIZAR ENVIO</span>'}${money(x.v)}${x.tr ? ' · ' + esc(x.tr) : ''}`, x.it.map(([k, q]) => `${k} x${q}`).join(' · ') || x.nm)).join('')
+          + `<p class="hint2">Os ${l.length} pedidos mais recentes entre os ${pd.total} esperando envio. A etiqueta chega aqui no chat em PDF, cortada em 10 × 15 cm e com o SKU no rodapé.</p>`;
+      atual = { tipo: 'pedl', item: proc };
+      return mostra('vList');
+    }
     if (tipo === 'casos') {
       $('lEye').textContent = 'ATENDENTE DUOKE'; $('lTitle').textContent = 'Casos para você';
       $('lBody').innerHTML = casos.length ? casos.map((c, i) => `<button class="item" data-caso="${i}"><div class="t"><span>${esc(c.cl)}</span><span style="font-weight:600;font-size:10px;color:#8ea6b8">${esc(c.dt)}</span></div><div class="s">${c.hj ? '<span class="tag w">HOJE</span>' : ''}${c.ra ? '<span class="tag g">RASCUNHO PRONTO</span>' : ''}🏪 ${esc(c.lj)}</div><div class="m">⚠️ ${esc(c.mo)}</div></button>`).join('') : '<div class="empty">✅ Nenhum caso do Atendente Duoke esperando você.</div>';
@@ -330,6 +346,17 @@
     mostra('vDet');
   }
 
+  // ---------- pedido pendente ----------
+  function pedido(x) {
+    atual = { tipo: 'ped', item: x };
+    const h = x.pz ? Math.round((x.pz - Date.now()) / 36e5) : null;
+    $('dBody').innerHTML = `<div class="card"><h3>PEDIDO SHOPEE</h3><div class="big">${esc(x.sn)}</div><p>🕒 ${esc(quando(x.at))} · ${money(x.v)}${x.tr ? ' · 🚚 ' + esc(x.tr) : ''}</p>${x.pz ? `<p>⏰ Enviar até ${esc(quando(x.pz))}${h != null && h < 24 ? ` <span class="tag r">${h <= 0 ? 'ATRASADO' : 'EM ' + h + ' H'}</span>` : ''}</p>` : ''}</div>
+      <div class="card"><h3>PRODUTOS</h3>${x.it.map(([k, q]) => `<div class="kv"><span>${esc(k)}</span><b>x${q}</b></div>`).join('') || `<p>${esc(x.nm)}</p>`}</div>
+      <div class="card"><h3>ETIQUETA</h3>${x.st === 'p' ? `<p>${x.et ? '✅ Já foi impressa em ' + esc(quando(x.et)) + '. Dá para receber de novo.' : '🏷 Ainda não foi impressa.'}</p>` : '<p>📦 O envio deste pedido ainda não foi organizado (coleta ou postagem). Organize na Shopee para a etiqueta sair; se já organizou, toque abaixo.</p>'}</div>
+      <div class="acts"><button class="btn ${x.st === 'p' ? 'ok' : 's'}" data-a="pedet">🏷 Receber a etiqueta aqui no chat (PDF)</button></div>`;
+    mostra('vDet');
+  }
+
   // ---------- Meus anúncios (Firebase do usuário, MLF Sistema) ----------
   // A extensão guarda a cópia diária dos anúncios em usuarios/{uid}/anunciosLojas e anunciosCache. A Central lê
   // dali com o login do próprio usuário no MLF Sistema (as regras do Firebase só deixam cada um ler o seu).
@@ -461,6 +488,9 @@
     if (el.dataset.est != null) { const [ci, ti] = el.dataset.est.split(':').map(Number); const c = D.pl.est[ci]; return tarefa(c, c.t[ti]); }
     if (el.dataset.spt != null) return tarefaSp(D.pl.sp[+el.dataset.spt]);
     if (el.dataset.info != null) return;
+    if (el.dataset.ped != null) return pedido(D.ped.l[+el.dataset.ped]);
+    if (el.dataset.a === 'pedet' && atual && atual.tipo === 'ped') { haptic(); return sendRaw({ action: 'x', op: 'et', key: atual.item.sn, s: '' }); }
+    if (el.dataset.a === 'pedtodas' && atual && atual.tipo === 'pedl') { haptic(); const sns = atual.item.map((x) => x.sn); return confirma(`Receber num PDF as etiquetas de ${sns.length} pedido(s) processado(s)?`, () => sendRaw({ action: 'x', op: 'et', key: sns.join(','), s: '' })); }
     if (el.dataset.fb === 'entrar') { const em = ($('fbEmail').value || '').trim(), se = $('fbSenha').value || ''; if (!em || !se) return alert('Informe o e-mail e a senha do MLF Sistema.'); el.disabled = true; el.textContent = 'Entrando…'; return fbLogin(em, se).then(anuncios, (er) => telaLogin(er.message, em)); }
     if (el.dataset.fb === 'sair') return confirma('Sair do MLF Sistema neste celular?', () => { lsS(null); AN.tok = null; telaLogin(); });
     if (el.dataset.anl != null) return abrirLoja(AN.lojas[+el.dataset.anl]);
