@@ -1,4 +1,5 @@
-// MLF BRASIL · Central Remota (Mini App do Telegram) — Central 3.6: casos do Mercado Livre (perguntas, pós-venda, reclamações) e respostas automáticas do ML (extensão 5.88.0+).
+// MLF BRASIL · Central Remota (Mini App do Telegram) — Central 3.7: + modo data forte do Shopee Ads (extensão 5.89.0+).
+// Central 3.6: casos do Mercado Livre (perguntas, pós-venda, reclamações) e respostas automáticas do ML (extensão 5.88.0+).
 // Central 3.5: + lista do Médico do sistema (extensão 5.87.0+).
 // Central 3.4: + 10 últimos pedidos pendentes da Shopee e as etiquetas (extensão 5.86.0+).
 // Central 3.3: + Meus anúncios lidos do Firebase do usuário (extensão 5.85.0+).
@@ -94,8 +95,8 @@
     setT('Atd', nAtd, D ? [casos.length && casos.length + ' caso(s)', (a.duv || []).length && a.duv.length + ' dúvida(s)', a.revN && a.revN + ' avaliação(ões)', a.mlN && a.mlN + ' no ML'].filter(Boolean).join(' · ') || 'Nada esperando você' : 'Duoke, avaliações e Mercado Livre', true);
     const nPre = (pr.cmd || []).length + (pr.mlp ? pr.mlp.n : 0);
     setT('Pre', nPre, nPre ? [(pr.cmd || []).length && pr.cmd.length + ' comando(s)', pr.mlp && pr.mlp.n + ' no ML'].filter(Boolean).join(' · ') : 'Nada aguardando', true);
-    const nCam = (cm.cmd || []).length + (cm.lot || []).length + (cm.titN || 0);
-    setT('Cam', nCam, nCam ? [(cm.cmd || []).length && cm.cmd.length + ' comando(s)', (cm.lot || []).length && cm.lot.length + ' lote(s)', cm.titN && cm.titN + ' título(s)'].filter(Boolean).join(' · ') : 'Nada aguardando', true);
+    const nCam = (cm.cmd || []).length + (cm.lot || []).length + (cm.titN || 0) + (cm.df && cm.df.st === 'p' ? 1 : 0);
+    setT('Cam', nCam, nCam ? [(cm.cmd || []).length && cm.cmd.length + ' comando(s)', (cm.lot || []).length && cm.lot.length + ' lote(s)', cm.titN && cm.titN + ' título(s)', cm.df && (cm.df.st === 'a' ? '📣 data forte ligado' : '📣 data forte p/ aprovar')].filter(Boolean).join(' · ') : 'Nada aguardando', true);
     const pend = pendPlano();
     setT('Pl', pend, pend ? `${pend} para aprovar · ${(pl.est || []).length} conta(s)` : (pl.est || []).length ? `${(pl.est || []).length} conta(s) · nada para aprovar` : 'Sem plano ainda', true);
     const nt = (D && D.nt) || [], urgN = nt.filter((t) => t.l <= 1).length;
@@ -137,6 +138,8 @@
       if ((o.cmd || []).length) h += sec('COMANDOS DO GERENTE') + o.cmd.map((x, i) => it(`data-cmd="${tipo}:${i}"`, '"' + x.tx + '"', quando(x.at), `${x.rf ? '<span class="tag w">SÓ NO COMPUTADOR</span>' : ''}${x.it ? x.it + ' anúncio(s)' : ''}${x.ob ? ' · ' + esc(x.ob) : ''}`, x.d)).join('');
       if (tipo === 'pre' && o.mlp) h += sec('MERCADO LIVRE · ANÁLISE DIÁRIA DE PREÇOS') + it('data-mlp="1"', `${o.mlp.n} ajuste(s) recomendados`, quando(o.mlp.at), o.mlp.ok ? '<span class="tag g">PRESERVA A ENTRADA</span>' : '<span class="tag r">CATÁLOGO DESATUALIZADO</span>', o.mlp.it.slice(0, 3).map((x) => `${x.t}: ${money(x.de)} → ${money(x.para)}`).join(' · '));
       if (tipo === 'cam') {
+        const df = o.df;
+        if (df) h = sec(df.st === 'a' ? '📣 MODO DATA FORTE · LIGADO' : '📣 MODO DATA FORTE · ESPERANDO SUA APROVAÇÃO') + it('data-df="1"', `Shopee Ads +${df.pct}% em ${df.n} campanha(s)`, df.st === 'a' ? 'LIGADO' : '', `<span class="tag ${df.st === 'a' ? 'g' : 'w'}">${df.st === 'a' ? 'ATÉ ' + esc(quando(df.fim)) : 'APROVAR'}</span>até ${money(df.ex)} a mais por dia`, df.m.slice(0, 3).map((x) => x[0]).join(' · ')) + h;
         if ((o.lot || []).length) h += sec('PULVERIZAÇÃO · LOTES DE ANÚNCIOS NOVOS') + o.lot.map((x, i) => it(`data-lot="${i}"`, `${x.n} anúncio(s) novo(s)`, x.j != null ? x.j + 'h' : '', `<span class="tag ${x.lj === 'ml' ? '' : 'g'}">${x.lj === 'ml' ? 'MERCADO LIVRE' : 'SHOPEE'}</span>`, (x.it || []).slice(0, 3).join(' · '))).join('');
         if ((o.tit || []).length) h += sec(`TÍTULOS E DESCRIÇÕES · SHOPEE${o.titN > o.tit.length ? ` (${o.tit.length} de ${o.titN})` : ''}`) + o.tit.map((x, i) => it(`data-tit="${i}"`, x.de || 'Anúncio', quando(x.at), `${x.ok ? '' : '<span class="tag w">REVISAR NO COMPUTADOR</span>'}${x.para ? 'título novo' : ''}${x.para && x.ds ? ' + ' : ''}${x.ds ? 'descrição nova' : ''}${x.lj ? ' · ' + esc(x.lj) : ''}`, x.para ? '→ ' + x.para : '')).join('');
       }
@@ -205,8 +208,12 @@
   }
 
   const MK = { pergunta: 'ML · PERGUNTA', posvenda: 'ML · PÓS-VENDA', reclamacao: 'ML · RECLAMAÇÃO', ml: 'MERCADO LIVRE' };
-  const tagMk = (c) => (c.mk ? `<span class="tag ${c.mk === 'reclamacao' ? 'r' : ''}">${MK[c.mk] || 'MERCADO LIVRE'}</span>` : '');
-  const destino = (c) => (c.mk ? 'no Mercado Livre' : 'pelo Duoke');
+  // v3.7.1: caso do ML reconhecido também pelo motivo (dados de extensões antigas não traziam o canal)
+  const mkDe = (c) => c.mk || (/^Mercado Livre/i.test(String(c.mo || '')) ? 'ml' : '');
+  const tagMk = (c) => (mkDe(c) ? `<span class="tag ${mkDe(c) === 'reclamacao' ? 'r' : ''}">${MK[mkDe(c)] || 'MERCADO LIVRE'}</span>` : '');
+  const destino = (c) => (mkDe(c) ? 'no Mercado Livre' : 'pelo Duoke');
+  const verNum = (v) => String(v || '0').split('.').map(Number).reduce((t, x, i) => t + (x || 0) * [1e6, 1e3, 1][i], 0);
+  const extAntigaMl = () => !D || !D.ver || verNum(D.ver) < verNum('5.88.0');
   // ---------- caso do Duoke ----------
   const QUEM = { c: '👤 Cliente', l: '🏪 Loja', a: '🤖 Automática' };
   function caso(c) {
@@ -219,14 +226,14 @@
       <textarea class="f" id="fAjuste" placeholder="O que mudar? Ex.: mais curta, sem prometer prazo"></textarea>
       <div class="row2"><button class="btn s" data-a="ajuste">✍️ Ajustar com a IA</button><button class="btn s" data-a="cancelar">✖️ Descartar</button></div></div></div>` : '';
     $('dBody').innerHTML = `
-      <div class="card"><h3>${c.mk ? esc(MK[c.mk] || 'MERCADO LIVRE') : 'CASO · ATENDENTE DUOKE'}</h3><div class="big">${esc(c.cl)}</div><p>🏪 ${esc(c.lj)}${c.dt ? ' · ' + esc(c.dt) : ''}</p><p>⚠️ <b>Por que veio para você:</b> ${esc(c.mo)}</p></div>
+      <div class="card"><h3>${mkDe(c) ? esc(MK[mkDe(c)] || 'MERCADO LIVRE') : 'CASO · ATENDENTE DUOKE'}</h3>${mkDe(c) && extAntigaMl() ? '<p>⚠️ Atualize a extensão MLF BRASIL para a 5.90.1 ou mais nova e toque em "Atualizar dados": a versão que montou esta lista ainda manda a resposta pelo Duoke, não pelo Mercado Livre.</p>' : ''}<div class="big">${esc(c.cl)}</div><p>🏪 ${esc(c.lj)}${c.dt ? ' · ' + esc(c.dt) : ''}</p><p>⚠️ <b>Por que veio para você:</b> ${esc(c.mo)}</p></div>
       <div class="card"><h3>PEDIDO</h3>${prods}</div>
       <div class="card"><h3>CONVERSA</h3>${conv}</div>
       <div class="card"><h3>RESPOSTA DO ATENDENTE</h3>${at}</div>
       ${rasc}
       <div class="card"><h3>COMO RESOLVER?</h3>
         <textarea class="f" id="fComo" maxlength="1200" placeholder="Ex.: pede desculpa e diz que vamos reenviar a peça em até 5 dias úteis"></textarea>
-        <p class="hint2">"IA escreve" monta a mensagem com a sua orientação e manda o rascunho no chat para você conferir. "Enviar exatamente" manda o seu texto direto ao cliente (até 600 caracteres).</p>
+        <p class="hint2">"IA escreve" monta a mensagem com a sua orientação e manda o rascunho no chat para você conferir e enviar (o caso sai da lista depois do envio). "Enviar exatamente" manda o seu texto direto ao cliente ${mkDe(c) ? 'no Mercado Livre (sem links, telefone ou e-mail; até ' + (mkDe(c) === 'pergunta' ? '2.000' : '350') + ' caracteres)' : 'pelo Duoke (até 600 caracteres)'}.</p>
         <div class="acts" style="margin:6px 0 0">
           <div class="row2"><button class="btn" data-a="como">🤖 IA escreve com isso</button><button class="btn w" data-a="texto">📨 Enviar exatamente</button></div>
           <button class="btn s" data-a="sug">💡 Sugira uma resposta (sem orientação)</button>
@@ -237,8 +244,8 @@
   function acaoCaso(a) {
     const c = atual.item, code = c.c;
     if (a === 'sug') return confirma(`Pedir uma sugestão de resposta para ${c.cl}? O rascunho chega no chat.`, () => sendRaw({ action: 'caso', op: 'sug', code }));
-    if (a === 'como') { const t = ($('fComo').value || '').trim(); if (!t) return alert('Escreva como devo resolver.'); return sendRaw({ action: 'caso', op: 'como', code, texto: t }); }
-    if (a === 'texto') { const t = ($('fComo').value || '').trim(); if (!t) return alert('Escreva a mensagem para o cliente.'); const lim = c.mk === 'pergunta' ? 2000 : c.mk ? 350 : 600; if (t.length > lim) return alert(`A mensagem tem ${t.length} caracteres. O limite é ${lim}.`); return confirma(`Enviar EXATAMENTE este texto para ${c.cl} ${destino(c)}?\n\n"${t.slice(0, 300)}${t.length > 300 ? '…' : ''}"`, () => sendRaw({ action: 'caso', op: 'texto', code, texto: t })); }
+    if (a === 'como') { const t = ($('fComo').value || '').trim(); if (!t) return alert('Escreva como devo resolver.'); return confirma(`A IA vai escrever a mensagem com a sua orientação e mandar o RASCUNHO aqui no chat. Lá você toca em "${mkDe(c) ? 'Enviar no Mercado Livre' : 'Enviar ao cliente'}" e o caso sai da lista. Continuar?`, () => sendRaw({ action: 'caso', op: 'como', code, texto: t })); }
+    if (a === 'texto') { const t = ($('fComo').value || '').trim(); if (!t) return alert('Escreva a mensagem para o cliente.'); const mk = mkDe(c); const lim = mk === 'pergunta' ? 2000 : mk ? 350 : 600; if (t.length > lim) return alert(`A mensagem tem ${t.length} caracteres. O limite é ${lim}.`); if (mk && /https?:\/\/|www\./i.test(t)) return alert('O Mercado Livre não aceita links nas mensagens (a mensagem seria recusada). Tire o link: explique em poucas palavras ou diga que o vídeo está na página do anúncio.'); if (mk && extAntigaMl()) return alert('Atualize a extensão MLF BRASIL (5.90.1 ou mais nova) e toque em "Atualizar dados": a versão atual ainda mandaria pelo Duoke.'); return confirma(`Enviar EXATAMENTE este texto para ${c.cl} ${destino(c)}?\n\n"${t.slice(0, 300)}${t.length > 300 ? '…' : ''}"`, () => sendRaw({ action: 'caso', op: 'texto', code, texto: t })); }
     if (a === 'ok') return confirma(`Marcar o caso de ${c.cl} como resolvido e tirar da lista?`, () => sendRaw({ action: 'caso', op: 'ok', code }));
     if (a === 'enviar') return confirma(`Enviar o rascunho para ${c.cl} ${destino(c)}?`, () => sendRaw({ action: 'caso', op: 'enviar', code }));
     if (a === 'ajuste') { const t = ($('fAjuste').value || '').trim(); if (!t) return alert('Escreva o que mudar.'); return sendRaw({ action: 'caso', op: 'ajuste', code, texto: t }); }
@@ -365,6 +372,16 @@
         <div class="kv"><span>Atendimento</span><b>${pend.atd}</b></div><div class="kv"><span>Preços</span><b>${pend.pre}</b></div><div class="kv"><span>Campanhas e anúncios</span><b>${pend.cam}</b></div><div class="kv"><span>Plano do gerente</span><b>${pend.pl}</b></div>
         <div class="kv"><span>Devoluções</span><b>${(D.dev || []).length}</b></div><div class="kv"><span>Vídeos com erro</span><b>${(D.vid || []).length}</b></div><div class="kv"><span>Cópias de hoje</span><b>${(D.cop || []).filter((x) => x.ok).length}</b></div></div>
       <div class="acts"><button class="btn s" data-command="painel">▦ Mandar o painel completo no chat</button></div>`;
+    mostra('vDet');
+  }
+
+  // ---------- modo data forte ----------
+  function dataForte(df) {
+    atual = { tipo: 'df', item: df };
+    $('dBody').innerHTML = `<div class="card"><h3>MODO DATA FORTE · SHOPEE ADS</h3><div class="big">+${df.pct}% de orçamento</div><p>${df.n} campanha(s) que dão retorno · até <b>${money(df.ex)}</b> a mais por dia (teto ${money(df.teto)})</p><p>⏰ ${df.st === 'a' ? 'Ligado até' : 'Vai até'} ${esc(quando(df.fim))}; depois volta tudo ao normal e chega o resultado.</p></div>
+      <div class="card"><h3>CAMPANHAS</h3>${df.m.map((x) => `<div class="kv"><span>${esc(x[0])}<br><small style="color:#8ea6b8">ROAS ${String(x[1]).replace('.', ',')}${x[4] ? ' · meta ROAS → ' + String(x[4]).replace('.', ',') : ''}${x[5] ? ' · a Shopee não aceitou' : ''}</small></span><b>${money(x[2])} → ${money(x[3])}</b></div>`).join('')}${df.n > df.m.length ? `<p class="hint2">… e mais ${df.n - df.m.length}.</p>` : ''}</div>
+      <div class="card"><h3>E MAIS</h3><p>• ${df.fr} campanha(s) fracas ficam como estão.</p><p>• Bot Ads a cada 30 min durante o modo.</p>${df.top ? `<p>• Impulso nos ${df.top} mais vendidos.</p>` : ''}${df.roas ? '<p>⚠️ Muda a meta de ROAS (a Shopee tira a Proteção ROAS quando a meta muda 2 vezes).</p>' : ''}</div>
+      <div class="acts">${df.st === 'a' ? '<button class="btn w" data-a="dfe">⏹ Encerrar agora e voltar ao normal</button>' : '<button class="btn ok" data-a="dfa">📣 Aprovar e ligar</button><button class="btn s" data-a="dfc">✖️ Cancelar</button>'}</div>`;
     mostra('vDet');
   }
 
@@ -510,6 +527,8 @@
     if (el.dataset.est != null) { const [ci, ti] = el.dataset.est.split(':').map(Number); const c = D.pl.est[ci]; return tarefa(c, c.t[ti]); }
     if (el.dataset.spt != null) return tarefaSp(D.pl.sp[+el.dataset.spt]);
     if (el.dataset.info != null) return;
+    if (el.dataset.df != null) return dataForte(D.cam.df);
+    if (['dfa', 'dfc', 'dfe'].includes(el.dataset.a) && atual && atual.tipo === 'df') { haptic(); const x = atual.item; const msg = { dfa: `Ligar o modo data forte? Orçamento +${x.pct}% em ${x.n} campanha(s), até ${money(x.ex)} a mais por dia, até ${quando(x.fim)}.`, dfc: 'Cancelar o plano de data forte?', dfe: 'Encerrar o modo data forte agora e voltar os orçamentos ao normal?' }[el.dataset.a]; return confirma(msg, () => sendRaw({ action: 'x', op: el.dataset.a, key: x.id, s: '' })); }
     if (el.dataset.a === 'mlon' || el.dataset.a === 'mloff') { haptic(); return confirma(el.dataset.a === 'mlon' ? 'Ligar as respostas automáticas do Mercado Livre (perguntas, pós-venda e reclamações)? Ele responde sozinho com o banco e as regras do Duoke; nas reclamações nunca devolve dinheiro nem autoriza devolução sozinho.' : 'Desligar as respostas automáticas do Mercado Livre?', () => sendRaw({ action: 'x', op: el.dataset.a, key: '-', s: '' })); }
     if ((el.dataset.a === 'mdr' || el.dataset.a === 'mdv') && atual && atual.tipo === 'med') { haptic(); return el.dataset.a === 'mdr' ? confirma('Rodar o médico agora? Ele confere tudo e conserta o que der.', () => sendRaw({ action: 'x', op: 'mdr', key: '-', s: '' })) : sendRaw({ action: 'x', op: 'mdv', key: '-', s: '' }); }
     if (el.dataset.ped != null) return pedido(D.ped.l[+el.dataset.ped]);
