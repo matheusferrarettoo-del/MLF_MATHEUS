@@ -83,6 +83,10 @@ A parte **Para resolver** agora tem, nesta ordem:
 
 Comandos grandes (com confirmação reforçada) continuam só no computador; a Central mostra, mas não executa. Tudo continua passando pelas mesmas regras e travas da extensão.
 
+## Central 3.4 — Últimos pedidos pendentes e etiquetas (extensão 5.86.0+)
+
+O cartão **Últimos pedidos pendentes** mostra os 10 pedidos mais recentes da Shopee esperando envio, com SKUs, valor, prazo e se a etiqueta já foi impressa. A etiqueta de um pedido (ou de todos os processados da lista) chega em PDF no chat do robô, cortada em 10 × 15 cm e com o SKU no rodapé. A lista vem no link do botão, como os outros itens; o PDF é mandado pelo robô do próprio usuário.
+
 ## Central 3.3 — Meus anúncios pelo Firebase (extensão 5.85.0+)
 
 O cartão **Meus anúncios** lista as lojas da Shopee e do Mercado Livre e os anúncios de cada uma (busca por título, SKU ou ID; preço, estoque, vendas, variações; abrir o anúncio). Os dados vêm do Firebase do próprio usuário (`usuarios/{uid}/anunciosLojas` e `usuarios/{uid}/anunciosCache`), que a extensão atualiza: busca completa 1 vez por dia e só as alterações a cada 2 horas. A Central não chama a Shopee nem o Mercado Livre.
