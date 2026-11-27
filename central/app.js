@@ -1,4 +1,4 @@
-// MLF BRASIL · Central Remota (Mini App do Telegram) — Central 3.0 (extensão 5.82.0+)
+// MLF BRASIL · Central Remota (Mini App do Telegram) — Central 3.1 (extensão 5.83.0+): + vídeos com erro e cópias de hoje
 // Mesma página para todos os usuários do MLF_MATHEUS; o conteúdo é de cada um: chega pelo próprio robô do usuário.
 // Os dados (casos do Atendente Duoke e devoluções da Shopee) chegam no próprio link, depois do "#",
 // compactados pela extensão. Nada é buscado na internet e nada sai do celular para o site.
@@ -65,6 +65,14 @@
     $('sDev').textContent = D ? (D.devErr && !dev.length ? 'Não consegui ler: ' + D.devErr.slice(0, 40) : dev.length ? `${urg ? urg + ' vence(m) em 48 h · ' : ''}${money(dev.reduce((t, d) => t + d.rv, 0))}` : 'Nada esperando você') : 'Shopee';
     $('tCasos').classList.toggle('hot', !!casos.length); $('tCasos').classList.toggle('zero', D && !casos.length);
     $('tDev').classList.toggle('hot', !!dev.length); $('tDev').classList.toggle('zero', D && !dev.length);
+    const vid = (D && D.vid) || [], cop = (D && D.cop) || [];
+    const copOk = cop.filter((x) => x.ok), copErr = cop.filter((x) => !x.ok);
+    $('nVid').textContent = D ? vid.length : '–';
+    $('sVid').textContent = D ? (vid.length ? `${vid.filter((v) => /resolu/i.test(v.d)).length} por resolução · Shopee` : 'Nenhum vídeo com erro') : 'Shopee · envio de vídeos';
+    $('nCop').textContent = D ? copOk.length : '–';
+    $('sCop').textContent = D ? `${copOk.filter((x) => x.o === 'ml').length} no ML · ${copOk.filter((x) => x.o === 'sp').length} na Shopee${copErr.length ? ' · ' + copErr.length + ' com erro' : ''}` : 'Mercado Livre e Shopee';
+    $('tVid').classList.toggle('hot', !!vid.length); $('tVid').classList.toggle('zero', D && !vid.length);
+    $('tCop').classList.toggle('zero', D && !cop.length);
     $('updTxt').textContent = D ? `Atualizado às ${new Date(D.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} de ${new Date(D.at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}${D.cut ? ' · lista resumida' : ''}` : 'Sem dados: toque em Atualizar dados.';
   }
 
@@ -74,6 +82,14 @@
     if (tipo === 'casos') {
       $('lEye').textContent = 'ATENDENTE DUOKE'; $('lTitle').textContent = 'Casos para você';
       $('lBody').innerHTML = casos.length ? casos.map((c, i) => `<button class="item" data-caso="${i}"><div class="t"><span>${esc(c.cl)}</span><span style="font-weight:600;font-size:10px;color:#8ea6b8">${esc(c.dt)}</span></div><div class="s">${c.hj ? '<span class="tag w">HOJE</span>' : ''}${c.ra ? '<span class="tag g">RASCUNHO PRONTO</span>' : ''}🏪 ${esc(c.lj)}</div><div class="m">⚠️ ${esc(c.mo)}</div></button>`).join('') : '<div class="empty">✅ Nenhum caso do Atendente Duoke esperando você.</div>';
+    } else if (tipo === 'vid') {
+      const vid = (D && D.vid) || [];
+      $('lEye').textContent = 'SHOPEE · VÍDEOS'; $('lTitle').textContent = 'Vídeos com erro';
+      $('lBody').innerHTML = vid.length ? vid.map((v, i) => `<button class="item" data-vid="${i}"><div class="t"><span>${esc(v.n || v.pid)}</span><span style="font-weight:600;font-size:10px;color:#8ea6b8">${v.at ? esc(new Date(v.at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })) : ''}</span></div><div class="s">${/resolu/i.test(v.d) ? '<span class="tag w">RESOLUÇÃO</span>' : v.st === 'invalido' ? '<span class="tag w">ARQUIVO</span>' : '<span class="tag r">ERRO</span>'}${v.sku ? 'SKU ' + esc(v.sku) : ''}${v.lj ? ' · ' + esc(v.lj) : ''}</div><div class="m">⚠️ ${esc(v.d)}</div></button>`).join('') : '<div class="empty">✅ Nenhum vídeo com erro.</div>';
+    } else if (tipo === 'cop') {
+      const cop = (D && D.cop) || [];
+      $('lEye').textContent = 'HOJE'; $('lTitle').textContent = 'Cópias criadas hoje';
+      $('lBody').innerHTML = cop.length ? cop.map((x, i) => `<button class="item" data-cop="${i}"><div class="t"><span>${esc(x.t || '(sem título)')}</span><span style="font-weight:600;font-size:10px;color:#8ea6b8">${esc(x.h || '')}</span></div><div class="s"><span class="tag ${x.o === 'ml' ? '' : 'g'}">${x.o === 'ml' ? 'MERCADO LIVRE' : 'SHOPEE'}</span>${x.ok ? '' : '<span class="tag r">ERRO</span>'}${x.lj ? esc(x.lj) + ' · ' : ''}${x.p ? money(x.p) + ' · ' : ''}${x.para ? 'cópia ' + esc(x.para) : ''}</div>${x.er ? `<div class="m">⚠️ ${esc(x.er)}</div>` : x.de ? `<div class="m">original ${esc(x.de)}${x.para ? ' · toque para abrir a cópia' : ''}</div>` : ''}</button>`).join('') : '<div class="empty">Nenhuma cópia criada hoje.</div>';
     } else {
       $('lEye').textContent = 'SHOPEE'; $('lTitle').textContent = 'Devoluções e reembolsos';
       $('lBody').innerHTML = dev.length ? dev.map((d, i) => { const h = d.pz ? Math.round((d.pz - Date.now()) / 36e5) : null; return `<button class="item" data-dev="${i}"><div class="t"><span>${esc(d.co || d.pe)}</span><span>${money(d.rv)}</span></div><div class="s">${h != null ? `<span class="tag ${h < 48 ? 'r' : ''}">${h <= 0 ? 'VENCIDO' : h < 48 ? 'VENCE EM ' + h + ' H' : 'PRAZO ' + Math.round(h / 24) + ' DIAS'}</span>` : ''}${d.sr ? '<span class="tag w">SEM DEVOLVER</span>' : ''}${d.pp ? '<span class="tag g">PROPOSTA</span>' : ''}pedido ${esc(d.pe)}</div><div class="m">❓ ${esc(d.mo)}${d.tx ? ' — "' + esc(d.tx) + '"' : ''}</div></button>`; }).join('') : `<div class="empty">${D && D.devErr ? '⚠️ ' + esc(D.devErr) : '✅ Nenhuma devolução esperando a sua ação.'}</div>`;
@@ -157,6 +173,27 @@
     if (a === 'de') return sendRaw({ action: 'dev', op: 'de', code });
   }
 
+  // ---------- vídeo com erro ----------
+  function video(v) {
+    atual = { tipo: 'vid', item: v };
+    const res = /resolu/i.test(v.d);
+    $('dBody').innerHTML = `
+      <div class="card"><h3>VÍDEO COM ERRO · SHOPEE</h3><div class="big" style="font-size:16px">${esc(v.n || v.pid)}</div><p>🆔 anúncio ${esc(v.pid)}${v.sku ? ' · SKU ' + esc(v.sku) : ''}${v.lj ? ' · ' + esc(v.lj) : ''}</p><p>🎞️ ${esc(v.f || '')}</p></div>
+      <div class="card"><h3>O QUE ACONTECEU</h3><p>⚠️ ${esc(v.d)}</p>${res ? '<p>💡 A Shopee aceita no máximo 1280 × 1280. Um vídeo 1080 × 1920 (vertical Full HD) precisa ser exportado em 720 × 1280. Troque o arquivo na pasta de vídeos e rode a busca de vídeos de novo.</p>' : ''}${v.st === 'invalido' ? '<p>💡 O arquivo está fora das regras da Shopee: troque o arquivo na pasta de vídeos.</p>' : ''}</div>
+      <div class="acts">${v.st === 'erro' ? '<button class="btn" data-a="vr">🔁 Tentar de novo</button>' : ''}<button class="btn s" data-a="vi">🚫 Ignorar este vídeo</button></div>`;
+    mostra('vDet');
+  }
+  function acaoVid(a) {
+    const v = atual.item;
+    if (a === 'vr') return confirma(`Colocar o vídeo de "${v.n}" de volta na fila de envio?`, () => sendRaw({ action: 'vid', op: 'vr', key: v.k, s: v.s }));
+    if (a === 'vi') return confirma(`Ignorar o vídeo de "${v.n}"? Ele sai da lista e não é enviado.`, () => sendRaw({ action: 'vid', op: 'vi', key: v.k, s: v.s }));
+  }
+  function abrirCopia(x) {
+    if (!x.para) return;
+    const url = x.o === 'ml' ? 'https://produto.mercadolivre.com.br/' + String(x.para).replace(/^([A-Z]{3})(\d+)$/, '$1-$2') : `https://shopee.com.br/product/${encodeURIComponent(x.s || '')}/${encodeURIComponent(x.para)}`;
+    if (tg && typeof tg.openLink === 'function') tg.openLink(url); else window.open(url, '_blank');
+  }
+
   // ---------- eventos ----------
   document.addEventListener('click', (e) => {
     const el = e.target.closest('button, [data-command]'); if (!el) return;
@@ -165,7 +202,9 @@
     if (el.dataset.back != null) return voltar();
     if (el.dataset.caso != null) return caso(D.casos[+el.dataset.caso]);
     if (el.dataset.dev != null) return dev(D.dev[+el.dataset.dev]);
-    if (el.dataset.a && atual) { haptic(); return atual.tipo === 'caso' ? acaoCaso(el.dataset.a) : acaoDev(el.dataset.a); }
+    if (el.dataset.vid != null) return video(D.vid[+el.dataset.vid]);
+    if (el.dataset.cop != null) return abrirCopia(D.cop[+el.dataset.cop]);
+    if (el.dataset.a && atual) { haptic(); return atual.tipo === 'caso' ? acaoCaso(el.dataset.a) : atual.tipo === 'vid' ? acaoVid(el.dataset.a) : acaoDev(el.dataset.a); }
     if (el.id === 'btnRefresh') return sendRaw({ action: 'refresh' });
   });
   $('commandForm').addEventListener('submit', (e) => { e.preventDefault(); const v = $('command').value.trim(); if (v) send(v); });

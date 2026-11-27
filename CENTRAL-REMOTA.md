@@ -67,6 +67,9 @@ A Central ganhou a parte **Para resolver**, com:
 - **Casos do atendimento** (Atendente Duoke): cliente, loja, motivo, pedido (SKU/variação/quantidade), conversa e o que o Atendente respondeu. Ações: IA escreve com a sua orientação (rascunho no chat), enviar exatamente o seu texto, sugerir resposta, já resolvi, enviar/ajustar/descartar rascunho.
 - **Devoluções e reembolsos** (Shopee): valor, comprador, itens, motivo, situação, prazo, pendências, proposta, custo perdido sem devolução e mensagens do cliente no Duoke. Ações: aceitar reembolso, reembolso parcial (validado na tela), aguardar, aceitar proposta, desistir da disputa, depois. Contestar continua no chat (motivo e e-mail), com confirmação.
 
+- **Vídeos com erro** (Shopee, extensão 5.83.0+): anúncio, SKU, arquivo e o motivo (ex.: resolução 1080 × 1920 acima do máximo de 1280 × 1280), com explicação de como resolver. Ações: tentar de novo (volta para a fila) e ignorar.
+- **Cópias de hoje** (extensão 5.83.0+): cópias criadas hoje na Duplicação do Mercado Livre e no Duplicar Shopee, inclusive as que deram erro (com o motivo). Tocar abre o anúncio da cópia.
+
 ### Como os dados chegam (sem servidor e sem misturar usuários)
 1. A extensão de cada usuário monta um resumo dos SEUS casos e devoluções, compacta (deflate) e coloca no link do botão **🖥️ Abrir Central MLF**, depois do `#` (`.../central/#d=z…`).
 2. O botão é mandado pelo robô do próprio usuário, só para o chat desse usuário (e dos convidados que ele autorizou).
