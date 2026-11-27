@@ -83,6 +83,10 @@ A parte **Para resolver** agora tem, nesta ordem:
 
 Comandos grandes (com confirmação reforçada) continuam só no computador; a Central mostra, mas não executa. Tudo continua passando pelas mesmas regras e travas da extensão.
 
+## Central 3.6 — Casos do Mercado Livre (extensão 5.88.0+)
+
+Os casos do Mercado Livre (perguntas, pós-venda e reclamações que a IA não soube responder ou que dependem de você) aparecem em "Casos para você", com a etiqueta do canal e os mesmos botões dos casos do Duoke; a resposta sai pela API do Mercado Livre. O item 1 mostra a situação das respostas automáticas do ML e o botão "Ligar tudo".
+
 ## Central 3.5 — Médico do sistema (extensão 5.87.0+)
 
 O cartão **Médico do sistema** mostra o que está parado agora e o histórico de consertos automáticos e avisos, com os botões "Rodar o médico agora" e "Marcar como vista". Esses avisos deixaram de chegar como mensagem no Telegram.
