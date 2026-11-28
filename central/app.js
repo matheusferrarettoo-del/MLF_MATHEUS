@@ -1,4 +1,5 @@
-// MLF BRASIL · Central Remota (Mini App do Telegram) — Central 3.7: + modo data forte do Shopee Ads (extensão 5.89.0+).
+// MLF BRASIL · Central Remota (Mini App do Telegram) — Central 3.8: + histórico de respostas com correção e o que o robô aprendeu (extensão 5.91.0+).
+// Central 3.7: + modo data forte do Shopee Ads (extensão 5.89.0+).
 // Central 3.6: casos do Mercado Livre (perguntas, pós-venda, reclamações) e respostas automáticas do ML (extensão 5.88.0+).
 // Central 3.5: + lista do Médico do sistema (extensão 5.87.0+).
 // Central 3.4: + 10 últimos pedidos pendentes da Shopee e as etiquetas (extensão 5.86.0+).
@@ -101,6 +102,9 @@
     setT('Pl', pend, pend ? `${pend} para aprovar · ${(pl.est || []).length} conta(s)` : (pl.est || []).length ? `${(pl.est || []).length} conta(s) · nada para aprovar` : 'Sem plano ainda', true);
     const nt = (D && D.nt) || [], urgN = nt.filter((t) => t.l <= 1).length;
     setT('Nt', nt.length, nt.length ? (urgN ? urgN + ' urgente(s) · ' : '') + nt.length + ' aviso(s)' : 'Nenhum aviso', urgN > 0);
+    const ap = D && D.apr;
+    $('nHist').textContent = ap ? ap.h.length : '–';
+    $('sHist').textContent = !D ? 'corrigir e ensinar o robô' : !ap ? 'Atualize a extensão (5.91.0+)' : `${ap.h.length} resposta(s) recentes · ${ap.a.filter((x) => !x.d).length} aprendizado(s)${ap.on ? '' : ' · aprender desligado'}`;
     const md = D && D.med, mdNovos = md ? md.l.filter((x) => x.at > (md.vistos || 0)).length : 0;
     $('nMed').textContent = md ? (md.pr.length || mdNovos) : '–';
     $('sMed').textContent = !D ? 'consertos e paradas' : !md ? 'Atualize a extensão (5.87.0+)' : md.pr.length ? `${md.pr.length} parada(s) agora${mdNovos ? ' · ' + mdNovos + ' aviso(s) novo(s)' : ''}` : mdNovos ? `${mdNovos} conserto(s)/aviso(s) novo(s)` : 'Tudo funcionando';
@@ -167,6 +171,17 @@
     }
     if (tipo === 'rs') return resumoDia();
     if (tipo === 'anc') return anuncios();
+    if (tipo === 'hist') {
+      const ap = D && D.apr;
+      $('lEye').textContent = 'ATENDENTE · DUOKE E MERCADO LIVRE'; $('lTitle').textContent = 'Histórico de respostas';
+      if (!ap) { $('lBody').innerHTML = velha(); return mostra('vList'); }
+      let h = `<p class="hint2">${ap.on ? '🎓 Cada resposta que você manda num caso vira aprendizado no banco do Atendente.' : '⏸ "Aprender com as minhas respostas" está desligado nas Configurações.'} Toque numa resposta do robô para corrigir: ele aprende o jeito certo para as próximas.</p>`;
+      h += sec('O QUE ELE APRENDEU COM VOCÊ') + (ap.a.length ? ap.a.map((x, i) => it(`data-apr="${i}"`, x.q, quando(x.at), `${x.d ? '<span class="tag">DESFEITO</span>' : x.t === 'correcao' ? '<span class="tag w">CORREÇÃO</span>' : '<span class="tag g">DA SUA RESPOSTA</span>'}${x.ml ? '<span class="tag">ML</span>' : ''}${esc(x.lj)}`, x.r ? '💬 ' + x.r : '')).join('') : vazio('Ainda nada. Responda um caso ou corrija uma resposta abaixo.'));
+      h += sec('ÚLTIMAS RESPOSTAS DO ROBÔ') + (ap.h.length ? ap.h.map((x, i) => it(`data-hst="${i}"`, x.cl, quando(x.dt), `${x.cor ? '<span class="tag g">CORRIGIDA</span>' : ''}${x.voce ? '<span class="tag">VOCÊ</span>' : x.e ? '' : '<span class="tag w">NÃO ENVIADA</span>'}${x.ml ? '<span class="tag">ML</span>' : ''}${esc(x.lj)}`, '🤖 ' + x.r)).join('') : vazio('Sem respostas no histórico ainda.'));
+      $('lBody').innerHTML = h;
+      atual = { tipo: 'histl', item: ap };
+      return mostra('vList');
+    }
     if (tipo === 'med') {
       const md = D && D.med;
       $('lEye').textContent = 'MÉDICO DO SISTEMA'; $('lTitle').textContent = 'Consertos e paradas';
@@ -375,6 +390,23 @@
     mostra('vDet');
   }
 
+  // ---------- histórico: corrigir / desfazer ----------
+  function respostaHist(x) {
+    atual = { tipo: 'hst', item: x };
+    $('dBody').innerHTML = `<div class="card"><h3>${x.ml ? 'MERCADO LIVRE' : 'DUOKE · SHOPEE'} · ${esc(x.lj)}</h3><div class="big" style="font-size:16px">${esc(x.cl)}</div><p>🕒 ${esc(quando(x.dt))}${x.cor ? ' · ✅ já corrigida' : ''}</p></div>
+      <div class="card"><h3>CONVERSA</h3>${x.c ? `<div class="bub c"><small>👤 Cliente</small>${esc(x.c)}</div>` : ''}<div class="bub l"><small>🤖 ${x.voce ? 'Você (pelo robô)' : 'Robô'}${x.e ? '' : ' · não enviada'}</small>${esc(x.r)}</div></div>
+      <div class="card"><h3>COMO ELE DEVIA TER RESPONDIDO?</h3><textarea class="f" id="fCor" maxlength="800" placeholder="Escreva a resposta certa (ou o que ele devia fazer). Ex.: Oi! A peça vai em até 3 dias úteis; me confirma o endereço?"></textarea><p class="hint2">Vira um caso ensinado no banco do Atendente: nas próximas conversas parecidas ele responde assim (Duoke e Mercado Livre). Não manda nada para este cliente.</p></div>
+      <div class="acts"><button class="btn ok" data-a="hc">🎓 Corrigir e ensinar</button></div>`;
+    mostra('vDet');
+  }
+  function aprendido(x) {
+    atual = { tipo: 'apr', item: x };
+    $('dBody').innerHTML = `<div class="card"><h3>${x.t === 'correcao' ? 'CORREÇÃO SUA' : 'APRENDIDO DA SUA RESPOSTA'} · ${esc(x.lj)}</h3><p>🕒 ${esc(quando(x.at))}${x.s ? ' · substituiu o que ele sabia' : ''}</p></div>
+      <div class="card"><h3>QUANDO ACONTECE</h3><p>${esc(x.q)}</p><h3>O QUE ELE FAZ</h3><p>${esc(x.a || '—')}</p><h3>RESPOSTA MODELO</h3><div class="bub l">${esc(x.r || '—')}</div>${x.an ? `<h3>ANTES ELE TINHA RESPONDIDO</h3><div class="bub c">${esc(x.an)}</div>` : ''}</div>
+      <div class="acts">${x.d ? '<p class="hint2">Este aprendizado já foi desfeito.</p>' : '<button class="btn s" data-a="ad">↩️ Desfazer (tirar do banco)</button>'}</div>`;
+    mostra('vDet');
+  }
+
   // ---------- modo data forte ----------
   function dataForte(df) {
     atual = { tipo: 'df', item: df };
@@ -527,6 +559,10 @@
     if (el.dataset.est != null) { const [ci, ti] = el.dataset.est.split(':').map(Number); const c = D.pl.est[ci]; return tarefa(c, c.t[ti]); }
     if (el.dataset.spt != null) return tarefaSp(D.pl.sp[+el.dataset.spt]);
     if (el.dataset.info != null) return;
+    if (el.dataset.hst != null) return respostaHist(D.apr.h[+el.dataset.hst]);
+    if (el.dataset.apr != null) return aprendido(D.apr.a[+el.dataset.apr]);
+    if (el.dataset.a === 'hc' && atual && atual.tipo === 'hst') { const t = ($('fCor').value || '').trim(); if (t.length < 5) return alert('Escreva como ele devia ter respondido.'); haptic(); return sendRaw({ action: 'x', op: 'hc', key: atual.item.k, s: '', texto: t }); }
+    if (el.dataset.a === 'ad' && atual && atual.tipo === 'apr') { haptic(); return confirma('Desfazer este aprendizado? Ele sai do banco do Atendente.', () => sendRaw({ action: 'x', op: 'ad', key: atual.item.k, s: '' })); }
     if (el.dataset.df != null) return dataForte(D.cam.df);
     if (['dfa', 'dfc', 'dfe'].includes(el.dataset.a) && atual && atual.tipo === 'df') { haptic(); const x = atual.item; const msg = { dfa: `Ligar o modo data forte? Orçamento +${x.pct}% em ${x.n} campanha(s), até ${money(x.ex)} a mais por dia, até ${quando(x.fim)}.`, dfc: 'Cancelar o plano de data forte?', dfe: 'Encerrar o modo data forte agora e voltar os orçamentos ao normal?' }[el.dataset.a]; return confirma(msg, () => sendRaw({ action: 'x', op: el.dataset.a, key: x.id, s: '' })); }
     if (el.dataset.a === 'mlon' || el.dataset.a === 'mloff') { haptic(); return confirma(el.dataset.a === 'mlon' ? 'Ligar as respostas automáticas do Mercado Livre (perguntas, pós-venda e reclamações)? Ele responde sozinho com o banco e as regras do Duoke; nas reclamações nunca devolve dinheiro nem autoriza devolução sozinho.' : 'Desligar as respostas automáticas do Mercado Livre?', () => sendRaw({ action: 'x', op: el.dataset.a, key: '-', s: '' })); }

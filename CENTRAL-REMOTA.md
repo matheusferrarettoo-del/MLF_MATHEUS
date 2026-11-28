@@ -83,6 +83,10 @@ A parte **Para resolver** agora tem, nesta ordem:
 
 Comandos grandes (com confirmação reforçada) continuam só no computador; a Central mostra, mas não executa. Tudo continua passando pelas mesmas regras e travas da extensão.
 
+## Central 3.8 — Histórico de respostas e aprendizado (extensão 5.91.0+)
+
+O cartão **Histórico de respostas** mostra as últimas respostas do robô (Duoke e Mercado Livre) com "Corrigir e ensinar" (vira caso ensinado no banco do Atendente, sem mandar nada ao cliente) e o que ele aprendeu com você, com "Desfazer".
+
 ## Central 3.7 — Modo data forte do Shopee Ads (extensão 5.89.0+)
 
 Em "Campanhas e anúncios aguardando aprovação" aparece o plano do modo data forte (orçamento a mais nas campanhas que dão retorno, teto por dia e até quando), com "Aprovar e ligar" / "Cancelar"; ligado, mostra até quando vai e "Encerrar agora".
